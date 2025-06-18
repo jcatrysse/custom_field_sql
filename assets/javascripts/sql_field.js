@@ -40,6 +40,7 @@ function observeSqlField(fieldId, url, form_params, options) {
                 }
                 var input = $(this, 'input');
                 var value = input.val();
+                if (value !== '') $.data(this, 'edited', true);
                 if ( this.store.includes(value) ) {
                     return;
                 }
@@ -53,6 +54,7 @@ function observeSqlField(fieldId, url, form_params, options) {
             select: function( event, ui ) {
                 if (!this.store.includes(ui.item.value))
                     this.store.push(ui.item.value);
+                $.data(this, 'edited', true);
             }
         }, options));
         $('#'+fieldId).addClass('autocomplete');
