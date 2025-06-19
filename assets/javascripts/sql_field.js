@@ -1,13 +1,16 @@
 function observeSqlField(fieldId, url, form_params, options) {
     $(document).ready(function() {
         $('#'+fieldId).autocomplete($.extend({
+            classes: {
+                "ui-autocomplete": "sql-autocomplete"
+            },
             create: function( event, ui ) {
                 this.store = [];
                 this.store.push(this.value);
                 let input = $(this, 'input');
                 input.tooltip({
                     classes: {
-                        "ui-tooltip": "ui-state-highlight"
+                        "ui-tooltip": "ui-state-highlight sql-tooltip"
                     }
                 });
             },

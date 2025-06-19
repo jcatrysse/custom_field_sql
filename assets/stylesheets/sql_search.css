@@ -1,15 +1,15 @@
-.ui-autocomplete {
+.sql-autocomplete.ui-autocomplete {
     max-height: 300px;
     overflow-y: auto;
     overflow-x: hidden;
 }
 
-.ui-tooltip{
+.sql-tooltip.ui-tooltip {
     white-space: pre-line;
     -webkit-box-shadow: 0 0 15px black;
     box-shadow: 0 0 15px red;
 }
 
-.ui-tooltip-content {
+.sql-tooltip .ui-tooltip-content {
     color: red;
 }
