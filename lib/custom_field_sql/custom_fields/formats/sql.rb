@@ -25,20 +25,20 @@ module CustomFieldSql
 
         def possible_values_options(custom_field, object = nil)
           sql = custom_field.sql
-          if sql
-            if object
-              return [] unless (object.class.to_s + 'CustomField')==custom_field.class.to_s
-              if object.id.nil?
-                sql = sql.gsub('%id%', 'null')
-              else
-                sql = sql.gsub('%id%', object.id.to_s)
-              end
+          return [] unless sql
+
+          if object
+            obj = object
+            obj = obj.first if obj.is_a?(Array)
+            if obj && (obj.class.to_s + 'CustomField') == custom_field.class.to_s
+              sql = sql.gsub('%id%', obj.id.nil? ? 'null' : obj.id.to_s)
+            else
+              sql = sql.gsub('%id%', 'null')
             end
-            result = ActiveRecord::Base.connection.select_all(sql)
-            result.rows
-          else
-            []
           end
+
+          result = ActiveRecord::Base.connection.select_all(sql)
+          result.rows
         end
 
         def group_statement(custom_field)
