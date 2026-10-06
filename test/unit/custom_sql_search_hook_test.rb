@@ -44,4 +44,20 @@ class CustomSqlSearchHookTest < ActiveSupport::TestCase
     form_params = JSON.parse(html[/JSON\.parse\((".*?[^\\]")\), JSON/, 1].undump)
     assert_equal({ 'p0' => "$('[name=\"issue[subject]\"]').val() == '' ? 'none' : 'some'\n", 'p1' => "1\n" }, form_params)
   end
+
+  def test_default_strict_error_message_is_translated
+    @field.update_column(:format_store, @field.format_store.merge('strict_error_message' => nil))
+    @field.reload
+    with_locale('ru') do
+      html = @hook.view_issues_form_details_bottom(issue: Issue.find(1))
+      options = JSON.parse(html.scan(/JSON\.parse\((".*?[^\\]")\)/).last.first.undump)
+      assert_equal 'неверное значение', options['strict_error_message']
+    end
+  end
+
+  def test_shipped_locales_have_the_same_keys
+    root = Rails.root.join('plugins', 'custom_field_sql', 'config', 'locales')
+    keys = Dir[root.join('*.yml').to_s].map { |f| YAML.load_file(f).values.first.keys.sort }
+    assert_equal 1, keys.uniq.size, keys.inspect
+  end
 end

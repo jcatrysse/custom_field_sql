@@ -39,7 +39,7 @@ class CustomSqlSearchHook < Redmine::Hook::ViewListener
     options = {}
     options[:search_by_click] = field.search_by_click ||= 0
     options[:strict_selection] = field.strict_selection ||= 0
-    options[:strict_error_message] = field.strict_error_message ||= 'it is not valid value'
+    options[:strict_error_message] = field.strict_error_message ||= l(:text_sql_strict_error_message_default)
     url = "#{Redmine::Utils.relative_url_root}/custom_sql_search/search?project_id=#{project_id}"
     url << "&issue_id=#{issue_id}" unless issue_id.nil?
     url << "&custom_field_id=#{field.id}"
