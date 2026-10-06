@@ -1,7 +1,5 @@
 class CustomSqlSearchController < ApplicationController
 
-  unloadable
-
   #  before_action :find_project, :authorize
   before_action :find_custom_field
 

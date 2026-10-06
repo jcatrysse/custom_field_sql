@@ -27,7 +27,17 @@ what is left. Written 2026-10-06 from a measured analysis (report at the bottom)
 
 ## Already on this branch
 
-- nothing: the branch equals the branch GEOxyz runs today.
+- `unloadable` removed from the search controller (work item 1/4), with test/unit/eager_load_test.rb.
+
+## Baseline (2026-10-06, before any change, Redmine 7.0.1 = 7.0-stable-GEOxyz @ 8067e23, Ruby 3.3.6)
+
+- Plugin tests: none existed ("This plugin has no tests.").
+- `./.codex/start_server.sh` (production, PostgreSQL 16.15): FAIL, Redmine does not boot:
+  `custom_sql_search_controller.rb:3: undefined local variable or method 'unloadable' for class
+  CustomSqlSearchController (NameError)`. So no baseline e2e run on 7.0 was possible.
+- Tooling notes: `test_setup.sh` with `RMP_PROVISION_DB=1` fails when run as root (`$SUDO -u postgres`
+  with an empty `$SUDO` gives `-u: command not found`); worked around by creating the role by hand
+  and `RMP_PROVISION_DB=0`. `rsync` had to be installed.
 
 ## Work list for the migration session
 
