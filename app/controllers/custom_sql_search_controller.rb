@@ -68,7 +68,7 @@ class CustomSqlSearchController < ApplicationController
 
   def find_project_and_issue
     @project = Project.find(params[:project_id])
-    @issue = Issue.visible.find(params[:issue_id]) unless params[:issue_id].blank? || params[:issue_id] == 'null'
+    @issue = params[:issue_id].blank? || params[:issue_id] == 'null' ? nil : Issue.visible.find(params[:issue_id])
   rescue ActiveRecord::RecordNotFound
     render_404
   end
