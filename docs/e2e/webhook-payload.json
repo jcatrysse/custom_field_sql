@@ -1,0 +1,85 @@
+{
+  "type": "issue.updated",
+  "timestamp": "2026-10-06T19:50:33Z",
+  "data": {
+    "issue": {
+      "id": 5,
+      "project": {
+        "id": 1,
+        "name": "E2E project"
+      },
+      "tracker": {
+        "id": 1,
+        "name": "Bug"
+      },
+      "status": {
+        "id": 5,
+        "name": "Closed",
+        "is_closed": true
+      },
+      "priority": {
+        "id": 2,
+        "name": "Normal"
+      },
+      "author": {
+        "id": 1,
+        "name": "Redmine Admin"
+      },
+      "subject": "E2E closed issue",
+      "description": "E2E closed issue.\r\n\r\nSecond paragraph with *emphasis* and a list:\r\n\r\n* one\r\n* two",
+      "start_date": null,
+      "due_date": null,
+      "done_ratio": 0,
+      "is_private": false,
+      "estimated_hours": null,
+      "total_estimated_hours": null,
+      "custom_fields": [
+        {
+          "id": 1,
+          "name": "E2E SQL list",
+          "value": "3"
+        },
+        {
+          "id": 2,
+          "name": "E2E SQL search",
+          "value": ""
+        },
+        {
+          "id": 3,
+          "name": "E2E SQL search by form",
+          "value": "Webhook 1791316233690"
+        },
+        {
+          "id": 5,
+          "name": "E2E SQL managers only",
+          "value": ""
+        },
+        {
+          "id": 6,
+          "name": "E2E SQL one project",
+          "value": ""
+        }
+      ],
+      "created_on": "2026-10-06T19:16:20Z",
+      "updated_on": "2026-10-06T19:50:33Z",
+      "closed_on": "2026-10-06T19:16:20Z"
+    },
+    "journal": {
+      "id": 9,
+      "created_on": "2026-10-06T19:50:33Z",
+      "notes": "",
+      "user": {
+        "id": 5,
+        "name": "Manager E2E"
+      },
+      "details": [
+        {
+          "property": "cf",
+          "prop_key": "3",
+          "old_value": "Webhook 1791316173575",
+          "value": "Webhook 1791316233690"
+        }
+      ]
+    }
+  }
+}

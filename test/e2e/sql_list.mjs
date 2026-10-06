@@ -6,13 +6,15 @@ import fields from './support/fields.cjs';
 
 const P = 'e2e-project';
 const t = await e2e('sql_list');
+// a native drop-down does not show open in a screenshot: show it as a list box
+const expand = id => t.page.locator(`#${id}`).evaluate(el => { el.size = Math.min(el.options.length, 14); });
 
 await t.login('manager');
 await t.go(`/projects/${P}/issues/new`);
 const list = await fields.fieldId(t.page, 'E2E SQL list');
 const onNew = await t.page.locator(`#${list} option`).allTextContents();
 if (!onNew.includes('E2E assigned issue')) t.problems.push(`new: options ${JSON.stringify(onNew)}`);
-await t.page.locator(`#${list}`).focus();
+await expand(list);
 await t.shot('new-options', `New issue: the options are the query's rows (${onNew.filter(x => x.trim()).length} issues, %id% is null)`, { full: false });
 
 // edit the first seeded issue: it is not offered for itself
@@ -24,6 +26,7 @@ const onEdit = await t.page.locator(`#${list} option`).allTextContents();
 if (onEdit.includes('E2E assigned issue')) t.problems.push('edit: the issue is offered for itself (%id% not replaced)');
 await t.page.selectOption(`#${list}`, { label: 'E2E related issue' });
 const picked = await t.page.inputValue(`#${list}`);
+await expand(list);
 await t.shot('edit-options', `Edit of #${issueId} "E2E assigned issue": it is not in its own list (%id% = ${issueId}); "E2E related issue" (value ${picked}) picked`, { full: false });
 await t.page.click('#issue-form input[name=commit]');
 await t.settle();
@@ -49,6 +52,7 @@ if (!new RegExp(`E2E SQL list:\\s*${picked}\\b`).test(await t.page.locator('#con
 await t.go(`/projects/${P}/issues/new`);
 const repOptions = await t.page.locator(`#${list} option`).count();
 if (repOptions < 2) t.problems.push(`reporter: ${repOptions} options`);
+await expand(list);
 await t.shot('reporter', `Reporter: the new issue form offers the same ${repOptions - 1} options`, { full: false });
 
 // outsider: the private project stays invisible

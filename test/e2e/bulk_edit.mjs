@@ -33,6 +33,8 @@ const found = await menu.locator('li').allTextContents();
 if (!found.some(x => x.includes('E2E subtask'))) t.problems.push(`bulk search: ${JSON.stringify(found)}`);
 await t.shot('form', `Bulk edit of 2 issues: the sql list offers its options (picked "E2E closed issue" = ${listValue}) and the sql search lists "${found.join(' | ')}"`, { full: false });
 await menu.locator('li', { hasText: 'E2E subtask' }).first().click();
+await t.page.locator(`#${list}`).evaluate(el => { el.size = Math.min(el.options.length, 14); });
+await t.shot('list-options', `Bulk edit: the options of the sql list, "E2E closed issue" selected; "E2E subtask" picked in the sql search`, { full: false });
 
 await t.page.click('#bulk_edit_form input[type=submit]');
 await t.settle();
