@@ -72,11 +72,11 @@ In this order: things that break, security, the GEOxyz changes, the open items, 
 
 These GEOxyz commits are on the branch GEOxyz runs today and therefore on this branch. Review each one against the code it now sits on (upstream merges and Redmine 7 core): drop it if upstream or core now does the same, rewrite it if it is not up to the quality rules below (tests, I18n, security, portability), keep it otherwise. Record the verdict per commit in this file.
 
-| commit | date | subject |
-|---|---|---|
-| `c4b0bf9` | 2025-07-02 | Defect: bulk edit not working #6600 |
-| `e6740ae` | 2025-06-19 | Defect: ensuring that the styles only apply within the plugin’s context #6211 |
-| `62738d7` | 2025-06-18 | Defect: resolve compatibility with redmine_inline_edit #6103 |
+| commit | date | subject | verdict |
+|---|---|---|---|
+| `c4b0bf9` | 2025-07-02 | Defect: bulk edit not working #6600 | KEEP, reworked: neither upstream nor core does it. The bulk edit hook was a copy of the issue form hook; both now share one script builder (so the issue form also survives a field without form params, which raised NoMethodError). Tests: test/unit/sql_format_test.rb (options for several issues), test/unit/custom_sql_search_hook_test.rb, test/functional/issues_controller_test.rb (bulk edit form and bulk update); 5 of them fail on the code before #6600. Browser: test/e2e/bulk_edit.mjs. |
+| `e6740ae` | 2025-06-19 | Defect: ensuring that the styles only apply within the plugin’s context #6211 | KEEP as is: core 7.0 still uses jQuery UI autocomplete/tooltip for its own fields, so unscoped `.ui-autocomplete` CSS would still leak. Proof in the browser: test/e2e/css_scope.mjs (core autocomplete keeps its own style, the plugin list gets `sql-autocomplete`). |
+| `62738d7` | 2025-06-18 | Defect: resolve compatibility with redmine_inline_edit #6103 | KEEP as is: sets jQuery data `edited` on select/change so redmine_inline_edit saves the value. Proof in the browser: test/e2e/sql_search.mjs reads the flag after a selection. |
 
 ## After the upgrade (production)
 

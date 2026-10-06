@@ -12,16 +12,7 @@ class CustomSqlSearchHook < Redmine::Hook::ViewListener
       context[:issue].available_custom_fields.each do |field|
         if field.is_a?(IssueCustomField)
           if field.field_format == 'sql_search'
-              p = Hash[field.form_params.each_line.map {|str| str.split("=")}]
-              options =Hash[];
-              options[:search_by_click] = field.search_by_click ||= 0;
-              options[:strict_selection] = field.strict_selection ||= 0;
-              options[:strict_error_message] = field.strict_error_message ||= 'it is not valid value';
-              html << "<script>\n"
-              html << "//<![CDATA[\n"
-              html << "observeSqlField(\'issue_custom_field_values_#{field.id}\', \'#{Redmine::Utils.relative_url_root}/custom_sql_search/search?project_id=#{context[:issue].project_id}&issue_id=#{context[:issue].id}&custom_field_id=#{field.id}\', JSON.parse(#{p.to_json.dump}), JSON.parse(#{options.to_json.dump}))\n"
-              html << "//]]>\n"
-              html << "</script>\n"
+              html << sql_search_script(field, context[:issue].project_id, context[:issue].id.to_s)
           end
         end
       end
@@ -34,18 +25,29 @@ class CustomSqlSearchHook < Redmine::Hook::ViewListener
     project_id = issues.first && issues.first.project_id
     IssueCustomField.where(id: issues.map { |i| i.available_custom_fields.map(&:id) }.flatten.uniq).each do |field|
       next unless field.field_format == 'sql_search'
-      p = Hash[field.form_params.to_s.each_line.map {|str| str.split("=") }]
-      options = {}
-      options[:search_by_click] = field.search_by_click ||= 0
-      options[:strict_selection] = field.strict_selection ||= 0
-      options[:strict_error_message] = field.strict_error_message ||= 'it is not valid value'
-      html << "<script>\n"
-      html << "//<![CDATA[\n"
-      html << "observeSqlField('issue_custom_field_values_#{field.id}', '#{Redmine::Utils.relative_url_root}/custom_sql_search/search?project_id=#{project_id}&custom_field_id=#{field.id}', JSON.parse(#{p.to_json.dump}), JSON.parse(#{options.to_json.dump}))\n"
-      html << "//]]>\n"
-      html << "</script>\n"
+      html << sql_search_script(field, project_id)
     end
     html
+  end
+
+  private
+
+  # The script that turns the field's input into an autocomplete, for the issue
+  # form and the bulk edit form.
+  def sql_search_script(field, project_id, issue_id = nil)
+    p = Hash[field.form_params.to_s.each_line.map {|str| str.split("=") }]
+    options = {}
+    options[:search_by_click] = field.search_by_click ||= 0
+    options[:strict_selection] = field.strict_selection ||= 0
+    options[:strict_error_message] = field.strict_error_message ||= 'it is not valid value'
+    url = "#{Redmine::Utils.relative_url_root}/custom_sql_search/search?project_id=#{project_id}"
+    url << "&issue_id=#{issue_id}" unless issue_id.nil?
+    url << "&custom_field_id=#{field.id}"
+    html = "<script>\n"
+    html << "//<![CDATA[\n"
+    html << "observeSqlField('issue_custom_field_values_#{field.id}', '#{url}', JSON.parse(#{p.to_json.dump}), JSON.parse(#{options.to_json.dump}))\n"
+    html << "//]]>\n"
+    html << "</script>\n"
   end
 end
 
