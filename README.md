@@ -42,6 +42,18 @@ p0 - parameter name
 Query must have field 'value'. This field used be as field value.
 format: support multiply forms parameters. Parameters must be written in jquery. 
 
+The search term typed in the field is available as %{term}.
+
+Every value that comes from the browser (%{term} and the form parameters) is escaped
+for the place it has in the query: inside quotes (`'%{p0}'`) as the content of a string
+literal, outside quotes as a string literal of its own (a number or a list of integers,
+like `1,2,3`, stays a number). %{project_id} and %{issue_id} are the ids of the project
+and the issue the user may see; `null` for a new issue. Only `%{name}` placeholders are
+supported; write `%%` for a literal percent sign.
+
+Only logged in users who can add or edit issues in the project, and who may see the
+field there, get results.
+
 ----------------------
 Example 1:
 

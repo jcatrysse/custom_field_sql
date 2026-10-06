@@ -8,6 +8,7 @@ end
 
 require_dependency File.dirname(__FILE__) + '/lib/custom_sql_search_hook'
 require_dependency File.dirname(__FILE__) + '/lib/custom_field_sql/custom_fields/formats/sql'
+require_dependency File.dirname(__FILE__) + '/lib/custom_field_sql/sql_template'
 
 CustomField.safe_attributes(
   'sql',

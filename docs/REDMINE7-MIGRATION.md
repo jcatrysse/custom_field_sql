@@ -28,6 +28,13 @@ what is left. Written 2026-10-06 from a measured analysis (report at the bottom)
 ## Already on this branch
 
 - `unloadable` removed from the search controller (work item 1/4), with test/unit/eager_load_test.rb.
+- Security (work items 2/6): `/custom_sql_search/search` requires login, an issue `sql_search` field
+  that is enabled for the project and visible to the user, and `add_issues`, `edit_issues` or
+  `edit_own_issues` in that project; `issue_id` must be a visible issue. Request values are no longer
+  interpolated: `CustomFieldSql::SqlTemplate` escapes every value for its place in the SQL (string
+  literal content inside quotes, a literal of its own outside quotes, nothing in comments).
+  Measured before on 7.0 (anonymous, field 6 of the e2e seed): `term=zzz') union select login || ':' ||
+  hashed_password, null from users --` returned every user's login and password hash.
 
 ## Baseline (2026-10-06, before any change, Redmine 7.0.1 = 7.0-stable-GEOxyz @ 8067e23, Ruby 3.3.6)
 
