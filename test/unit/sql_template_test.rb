@@ -1,6 +1,8 @@
 require File.expand_path('../../test_helper', __FILE__)
 
 class CustomFieldSqlTemplateTest < ActiveSupport::TestCase
+  fixtures :projects, :users, :issues, :issue_statuses, :trackers, :projects_trackers, :enumerations
+
   PAYLOADS = [
     "plain", "it's", "''", "\\", "\\'", "\\\\'", "' or 1=1 --", "') union select login, login from users --",
     "\\'; select 1; --", "*/ select 1 /*", "$$ or 1=1 $$", "\" or \"1\"=\"1", "` or 1",
@@ -123,5 +125,21 @@ class CustomFieldSqlTemplateTest < ActiveSupport::TestCase
     assert_equal "select 'it''s \\' where [a] = 'x''' and \"b\" = 1",
                  render("select %{p0} where [%{p1}] = '%{p2}' and \"%{p3}\" = 1",
                         { 'p0' => "it's \\", 'p1' => 'a]', 'p2' => "x'", 'p3' => 'b"' }, dialect: :sqlserver)
+  end
+
+  # the examples in the README run on PostgreSQL and MySQL/MariaDB
+  def test_readme_examples
+    readme = File.read(Rails.root.join('plugins', 'custom_field_sql', 'README.md'))
+    example1 = readme[/`(select subject as value, description as label from issues .*?)`/, 1]
+    example2 = readme[/`(select subject as value from issues where '%\{p0\}' = 'new' .*?)`/, 1]
+    example3 = readme[/`(select subject as value from issues where id = coalesce.*?)`/, 1]
+    Issue.create!(project_id: 1, tracker_id: 1, author_id: 1, subject: 'Readme example', description: 'cream')
+    run = ->(sql, values, trusted = {}) { ActiveRecord::Base.connection.select_all(render(sql, values, trusted: trusted)).rows.map(&:first) }
+
+    assert_equal ['Readme example'], run.(example1, 'p0' => '%example%', 'p1' => '%cream%')
+    assert_equal Issue.count, run.(example2, 'p0' => 'new').size
+    assert_equal [Issue.find(2).subject], run.(example2, 'p0' => '2')
+    assert_equal Issue.count, run.(example3, {}, issue_id: 'null').size
+    assert_equal [Issue.find(2).subject], run.(example3, {}, issue_id: 2)
   end
 end

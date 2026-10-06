@@ -67,21 +67,34 @@ Example 1:
 `p1='%'+$('#issue_custom_field_values_30').val()+'%'`
 
 ----------------------
-Simple 2 (for MySQL):
+Example 2:
 
  "sql expression": 
  
- `select subject as value from issues where id = if( ? ='new', id, ?);`
+ `select subject as value from issues where '%{p0}' = 'new' or cast(id as char(10)) = '%{p0}'`
  
  
  "sql form params":
  
 `p0=window.location.toString().split('/').pop()`
 
-`p1=window.location.toString().split('/').pop()`
-
 
 This expression `window.location.toString().split('/').pop()` calculate **issue id** on form. For new issues calculated value = 'new'.
+
+The same without form parameters: `select subject as value from issues where id = coalesce(%{issue_id}, id)`
+
+----------------------
+
+PostgreSQL and MySQL/MariaDB
+----------------------
+The examples run on both. When you write your own query, keep it portable:
+* no backticks around names, and single quotes for strings (`"abc"` is a column name in PostgreSQL)
+* booleans as `= true` / `= false`, not `= 1` / `= 0`
+* `LIKE` is case sensitive in PostgreSQL: compare `lower(...)` with `lower(...)`
+* `limit 5 offset 10`, not `limit 10, 5`; `coalesce` instead of `ifnull`, `case when` instead of `if()`
+* `custom_values.value` is text: cast the other side (`cast(users.id as char(10))`) before comparing
+
+One query that fails stops the whole issue form, so try a new query in a test project first.
 
 ----------------------
 
