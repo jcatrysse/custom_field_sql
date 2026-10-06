@@ -38,4 +38,16 @@ class CustomFieldSqlFormatTest < ActiveSupport::TestCase
     issue = Issue.new(project_id: 1, tracker_id: 1)
     assert_equal 'Cannot print recipes', issue.custom_field_values.detect { |v| v.custom_field == field }.value
   end
+
+  def test_sql_search_default_value_without_tracker_or_issue
+    sql = "select coalesce(max(name), 'none') from projects where id = coalesce(%{project_id}, 1) " \
+          "and coalesce(%{tracker_id}, 1) = 1"
+    IssueCustomField.create!(name: 'Default issue', field_format: 'sql_search', is_for_all: true, trackers: Tracker.all,
+                             sql: "select 1 as value", default_value: sql)
+    project_field = ProjectCustomField.create!(name: 'Default project', field_format: 'sql_search',
+                                               sql: "select 1 as value", default_value: sql)
+    assert_equal 'eCookbook', Project.new.custom_field_values.detect { |v| v.custom_field == project_field }.value
+    issue = Issue.new # no project, no tracker yet
+    assert_equal 'eCookbook', CustomValue.new(custom_field: IssueCustomField.find_by(name: 'Default issue'), customized: issue).value
+  end
 end

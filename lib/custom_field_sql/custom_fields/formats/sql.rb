@@ -9,10 +9,10 @@ module CustomFieldSql
 
         def select_default_value(custom_field, object = nil)
           return if custom_field.default_value.blank?
-          params = {}
+          params = { tracker_id: 'null', project_id: 'null' }
           if object && object.is_a?(Issue)
-            params[:tracker_id] = object.tracker_id
-            params[:project_id] = object.project_id
+            params[:tracker_id] = object.tracker_id || 'null'
+            params[:project_id] = object.project_id || 'null'
           end
           ActiveRecord::Base.connection.select_value(custom_field.default_value % params)
         end
