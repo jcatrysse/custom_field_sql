@@ -12,7 +12,7 @@ await t.login('manager');
 await t.go('/projects/e2e-project/issues/new');
 const projectId = (await t.page.content()).match(/search\?project_id=(\d+)/)[1];
 const f = {};
-for (const name of ['E2E SQL search', 'E2E SQL managers only', 'E2E SQL one project', 'E2E SQL list']) {
+for (const name of ['E2E SQL search', 'E2E SQL search by form', 'E2E SQL managers only', 'E2E SQL one project', 'E2E SQL list']) {
   f[name] = (await fields.fieldId(t.page, name)).split('_').pop();
 }
 await t.go('/projects/e2e-private/issues/new');
@@ -40,6 +40,8 @@ await check('injection-term', "Manager, a term that closes the quote and adds a 
   url('E2E SQL search', { term: "zzz') union select login || ':' || hashed_password, null from users --" }), 200, b => b === '[]');
 await check('injection-quote', "Manager, field \"E2E SQL search\", term `x%') or 1=1 or ('`: no rows",
   url('E2E SQL search', { term: "x%') or 1=1 or ('" }), 200, b => b === '[]');
+await check('injection-form-param', "Manager, form parameter p0 that closes the quote and adds a UNION over every login and password hash (test users): no rows",
+  url('E2E SQL search by form', { p0: "zzz' union select login || ':' || hashed_password, null from users --" }), 200, b => b === '[]');
 await check('managers-only', 'Manager, field visible to "E2E full" only: allowed', url('E2E SQL managers only', { term: 'man' }), 200,
   b => b.includes('manager'));
 await check('field-not-in-project', 'Manager, field enabled for e2e-project only, asked for e2e-private: refused',
