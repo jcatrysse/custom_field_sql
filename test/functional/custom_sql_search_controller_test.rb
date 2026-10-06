@@ -122,6 +122,17 @@ class CustomSqlSearchControllerTest < Redmine::ControllerTest
     assert_response :success
   end
 
+  # an issue the user may edit does not open a project where the user may not
+  # add or edit issues
+  def test_editable_issue_does_not_open_another_project
+    Role.non_member.remove_permission!(:add_issues, :edit_issues, :edit_own_issues)
+    @request.session[:user_id] = 2 # manager in project 1, not a member of public project 3
+    search(project_id: 3, issue_id: 1)
+    assert_response 403
+    search(project_id: 2, issue_id: 1) # developer in project 2: moving issue 1 there is allowed
+    assert_response :success
+  end
+
   def test_field_not_enabled_for_the_project_is_refused
     @field.update!(is_for_all: false, project_ids: [1])
     @request.session[:user_id] = 2 # developer in project 2

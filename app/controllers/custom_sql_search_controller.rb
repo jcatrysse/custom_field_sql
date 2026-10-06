@@ -74,15 +74,13 @@ class CustomSqlSearchController < ApplicationController
   end
 
   # The user must be able to fill in this field: see it, in a project that has
-  # it, and edit the given issue, or (new issue, bulk edit) add or edit issues there.
+  # it and where the user may add or edit issues, and edit the given issue (on
+  # the edit form the project can be the one the issue is being moved to).
   def authorize_search
     allowed = @project.all_issue_custom_fields.include?(@custom_field) &&
               @custom_field.visible_by?(@project, User.current) &&
-              if @issue
-                @issue.attributes_editable?(User.current)
-              else
-                [:add_issues, :edit_issues, :edit_own_issues].any? { |p| User.current.allowed_to?(p, @project) }
-              end
+              [:add_issues, :edit_issues, :edit_own_issues].any? { |p| User.current.allowed_to?(p, @project) } &&
+              (@issue.nil? || @issue.attributes_editable?(User.current))
     deny_access unless allowed
   end
 end
