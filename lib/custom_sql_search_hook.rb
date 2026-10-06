@@ -35,7 +35,7 @@ class CustomSqlSearchHook < Redmine::Hook::ViewListener
   # The script that turns the field's input into an autocomplete, for the issue
   # form and the bulk edit form.
   def sql_search_script(field, project_id, issue_id = nil)
-    p = Hash[field.form_params.to_s.each_line.map {|str| str.split("=") }]
+    p = Hash[field.form_params.to_s.each_line.map {|str| str.split("=", 2) }]
     options = {}
     options[:search_by_click] = field.search_by_click ||= 0
     options[:strict_selection] = field.strict_selection ||= 0

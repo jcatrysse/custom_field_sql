@@ -37,4 +37,11 @@ class CustomSqlSearchHookTest < ActiveSupport::TestCase
     assert_include "issue_custom_field_values_#{@field.id}", @hook.view_issues_form_details_bottom(issue: Issue.find(1))
     assert_include "issue_custom_field_values_#{@field.id}", @hook.view_issues_bulk_edit_details_bottom(issues: [Issue.find(1)])
   end
+
+  def test_form_param_expression_with_an_equals_sign
+    @field.update!(form_params: "p0=$('[name=\"issue[subject]\"]').val() == '' ? 'none' : 'some'\np1=1\n")
+    html = @hook.view_issues_form_details_bottom(issue: Issue.find(1))
+    form_params = JSON.parse(html[/JSON\.parse\((".*?[^\\]")\), JSON/, 1].undump)
+    assert_equal({ 'p0' => "$('[name=\"issue[subject]\"]').val() == '' ? 'none' : 'some'\n", 'p1' => "1\n" }, form_params)
+  end
 end
