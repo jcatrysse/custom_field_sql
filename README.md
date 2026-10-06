@@ -52,7 +52,9 @@ and the issue the user may see; `null` for a new issue. Only `%{name}` placehold
 supported; write `%%` for a literal percent sign.
 
 Only logged in users who can add or edit issues in the project, and who may see the
-field there, get results.
+field there, get results. The query itself runs with Redmine's database account, not
+with the rights of the user: it sees every project, private ones included. Limit it
+yourself where that matters, for example with `project_id = %{project_id}`.
 
 ----------------------
 Example 1:
