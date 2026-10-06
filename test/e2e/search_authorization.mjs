@@ -17,6 +17,8 @@ for (const name of ['E2E SQL search', 'E2E SQL search by form', 'E2E SQL manager
 }
 await t.go('/projects/e2e-private/issues/new');
 const privateId = (await t.page.content()).match(/search\?project_id=(\d+)/)[1];
+await t.go('/projects/e2e-project/issues?set_filter=1&f[]=subject&op[subject]=~&v[subject][]=E2E+assigned+issue');
+const publicIssue = (await t.page.locator('table.issues td.id a').first().textContent()).trim();
 await t.go('/projects/e2e-private/issues');
 const privateIssue = (await t.page.locator('table.issues td.id a').first().textContent()).trim();
 
@@ -36,6 +38,8 @@ async function check(shotName, caption, path, expected, test) {
 
 await check('manager', 'Manager, field "E2E SQL search", term E2E: the subjects of e2e-project only',
   url('E2E SQL search'), 200, b => JSON.parse(b).length > 0 && !b.includes('E2E private issue'));
+await check('manager-edit-issue', 'Manager, the edit form of an issue (issue_id given, may edit it): allowed',
+  url('E2E SQL search', { issue_id: publicIssue }), 200, b => JSON.parse(b).length > 0);
 await check('injection-term', "Manager, a term that closes the quote and adds a UNION over every login and password hash (the request that leaked them before): no rows, the term stays text",
   url('E2E SQL search', { term: "zzz') union select login || ':' || hashed_password, null from users --" }), 200, b => b === '[]');
 await check('injection-quote', "Manager, field \"E2E SQL search\", term `x%') or 1=1 or ('`: no rows",
@@ -52,6 +56,8 @@ await check('unknown-project', 'Manager, a project that does not exist: not foun
 await t.login('reporter');
 await check('reporter', 'Reporter (core role with add issues), field "E2E SQL search": allowed', url('E2E SQL search'), 200,
   b => JSON.parse(b).length > 0);
+await check('reporter-issue-not-editable', 'Reporter (may add, not edit issues), issue_id of a visible issue of someone else: refused',
+  url('E2E SQL search', { issue_id: publicIssue }), 403);
 await check('reporter-hidden-field', 'Reporter, field visible to "E2E full" only: refused', url('E2E SQL managers only', { term: 'man' }), 403);
 await check('reporter-private-issue', `Reporter, issue_id of private issue #${privateIssue}: not found`, url('E2E SQL search', { issue_id: privateIssue }), 404);
 

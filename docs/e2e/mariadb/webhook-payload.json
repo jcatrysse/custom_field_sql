@@ -1,6 +1,6 @@
 {
   "type": "issue.updated",
-  "timestamp": "2026-10-06T20:02:51Z",
+  "timestamp": "2026-10-06T20:20:53Z",
   "data": {
     "issue": {
       "id": 5,
@@ -47,7 +47,7 @@
         {
           "id": 3,
           "name": "E2E SQL search by form",
-          "value": "Webhook 1791316971239"
+          "value": "Webhook 1791318053621"
         },
         {
           "id": 4,
@@ -61,12 +61,12 @@
         }
       ],
       "created_on": "2026-10-06T20:00:18Z",
-      "updated_on": "2026-10-06T20:02:51Z",
+      "updated_on": "2026-10-06T20:20:53Z",
       "closed_on": "2026-10-06T20:00:18Z"
     },
     "journal": {
-      "id": 7,
-      "created_on": "2026-10-06T20:02:51Z",
+      "id": 9,
+      "created_on": "2026-10-06T20:20:53Z",
       "notes": "",
       "user": {
         "id": 5,
@@ -75,15 +75,9 @@
       "details": [
         {
           "property": "cf",
-          "prop_key": "1",
-          "old_value": null,
-          "value": "3"
-        },
-        {
-          "property": "cf",
           "prop_key": "3",
-          "old_value": null,
-          "value": "Webhook 1791316971239"
+          "old_value": "Webhook 1791316971239",
+          "value": "Webhook 1791318053621"
         }
       ]
     }

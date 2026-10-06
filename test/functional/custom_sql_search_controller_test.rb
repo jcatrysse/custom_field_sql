@@ -106,6 +106,22 @@ class CustomSqlSearchControllerTest < Redmine::ControllerTest
     assert_response 403
   end
 
+  # with an issue the user must be able to edit that issue; without one (new
+  # issue, bulk edit) adding or editing issues in the project is enough
+  def test_issue_the_user_cannot_edit_is_refused
+    Role.find(2).remove_permission!(:add_issues, :edit_issues)
+    Role.find(2).add_permission!(:edit_own_issues)
+    own = Issue.create!(project_id: 1, tracker_id: 1, author_id: 3, subject: 'Own recipe issue')
+    @request.session[:user_id] = 3 # developer: may edit own issues only
+    search(issue_id: 1) # by jsmith
+    assert_response 403
+    search(issue_id: own.id)
+    assert_response :success
+    assert_include 'Own recipe issue', values
+    search # bulk edit of own issues
+    assert_response :success
+  end
+
   def test_field_not_enabled_for_the_project_is_refused
     @field.update!(is_for_all: false, project_ids: [1])
     @request.session[:user_id] = 2 # developer in project 2
