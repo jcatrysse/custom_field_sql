@@ -60,4 +60,17 @@ class CustomSqlSearchHookTest < ActiveSupport::TestCase
     keys = Dir[root.join('*.yml').to_s].map { |f| YAML.load_file(f).values.first.keys.sort }
     assert_equal 1, keys.uniq.size, keys.inspect
   end
+
+  def test_blank_and_comment_lines_in_form_params
+    @field.update!(form_params: "p0=1\n\n# a note\n")
+    html = @hook.view_issues_form_details_bottom(issue: Issue.find(1))
+    form_params = JSON.parse(html[/JSON\.parse\((".*?[^\\]")\), JSON/, 1].undump)
+    assert_equal "1\n", form_params['p0']
+  end
+
+  def test_settings_cannot_close_the_script_element
+    @field.update!(strict_error_message: '</script><script>alert(1)</script>', form_params: "p0='</script>'")
+    html = @hook.view_issues_form_details_bottom(issue: Issue.find(1))
+    assert_equal 1, html.scan('</script>').size, html
+  end
 end
