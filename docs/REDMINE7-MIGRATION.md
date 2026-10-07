@@ -4,7 +4,7 @@ Start a Claude Code (or Codex) session on this repository, branch `redmine70-mig
 
 > Read CLAUDE.md and docs/REDMINE7-MIGRATION.md, then carry out the Redmine 7 migration of this
 > plugin as described there, on branch redmine70-migration. That includes the plugin's tests on
-> PostgreSQL and MariaDB, every function exercised end to end on a real running Redmine in a
+> PostgreSQL, every function exercised end to end on a real running Redmine in a
 > browser (with and without permissions, failure paths included) with screenshots you looked at,
 > and an OpenAI review of the diff when OPENAI_API_KEY is set. Report to me in Dutch at the end.
 
@@ -25,7 +25,7 @@ what is left. Written 2026-10-06 from a measured analysis (report at the bottom)
 | Complexity (1 trivial .. 5 rewrite) | 2 |
 | Measured on | Redmine 7.0.1 (7.0-stable-GEOxyz + latest 7.0-stable), Rails 8.1.3.1, Ruby 3.3.6, PostgreSQL 16 and MariaDB 10.11 |
 | Branch head when this file was written | `6106dfb` (plan); work finished at the commit that adds this line, see `git log` |
-| Migration state | DONE, see "Results" and "Open questions for Jan" |
+| Migration state | IN PROGRESS: carrying out Jan's decisions of 2026-10-07 (work items 10-12) |
 
 ## Already on this branch
 
@@ -85,9 +85,18 @@ In this order: things that break, security, the GEOxyz changes, the open items, 
 
 **Checks**
 
-7. Run the plugin's whole test suite on Redmine 7.0-stable-GEOxyz with PostgreSQL AND MariaDB, and once on 5.1-stable if the branch is meant to stay 5.1-compatible. **DONE**, see "Results" (green on all three).
+7. Run the plugin's whole test suite on Redmine 7.0-stable-GEOxyz with PostgreSQL (MariaDB and 5.1 were run on 2026-10-06; no longer required since Jan's decisions of 2026-10-07). **DONE**, see "Results" (green on all three).
 8. Check Redmine 7 webhooks against this plugin (see "Rules"), and note the result here even if nothing is needed. **DONE, nothing needed**: the plugin hides, adds and changes no issue data; both formats store plain values, which core's issues/show.api.rsb sends like any custom field (as the webhook owner, with core's field visibility). Proven with a real delivery: test/e2e/webhook.mjs, docs/e2e/webhook-payload.json.
 9. Verify every feature of the plugin by hand on a running Redmine 7 (screenshots). **DONE**, see "Inventory of functions".
+
+**Jan's decisions of 2026-10-07** (one commit each, with a test that fails without it)
+
+10. Decision 1: `/custom_sql_search/search` without login again; anonymous users get results where the
+    anonymous role may add or edit issues (and see the field); every other check stays. **TODO**
+11. Decision 2: the search also serves `sql_search` fields of projects, users and time entries, each with
+    the permission of the form the field sits on. **TODO**
+12. Decision 3: upstream multi select (3d36b17) and IssueHotButton compatibility (13d0792), adapted to this
+    branch (shared script builder, bulk edit, CSS scope, `edited` flag, Redmine 7 icons, I18n). **TODO**
 
 ## GEOxyz changes to review or re-apply
 
@@ -176,6 +185,7 @@ rejected (locale keys exist, blank form-param lines do not raise, `</script>` is
 - The `sql` format stores the query's second column and shows that stored value on the issue and in the
   list, not the label (seen: `4` instead of "E2E related issue"). Same on 5.1 (docs/e2e/before/sql_list.md
   passes the same check). Use a one-column query, or both columns equal, if the label matters.
+  Kept as upstream by Jan's decision 4 (2026-10-07).
 - "Search by click" makes jQuery UI search for the literal term `data`, so it only makes sense with a query
   that does not filter on `%{term}` (upstream behaviour; the e2e seed models it that way).
 - A field's query runs with Redmine's database account: it sees private projects too. Now in the README.
@@ -188,22 +198,37 @@ rejected (locale keys exist, blank form-param lines do not raise, `</script>` is
 - `.codex/test_setup.sh` cannot provision PostgreSQL as root (`$SUDO -u postgres` with an empty `$SUDO`);
   5.1-stable needs Ruby < 3.3 (used 3.2.6 from rbenv).
 
-## Open questions for Jan
+## Decided by Jan (2026-10-07)
 
-1. **Login and permissions for the SQL search.** Built as the plan asks: login required, and the user must
-   be allowed to add or edit issues in the project (with an issue: edit that issue) and see the field.
-   Effect: anonymous users who may create issues in a public project, and members who may only view
-   issues, no longer get autocomplete results. Options: (a) keep this (recommended: the endpoint runs
-   administrator SQL, it was open to anyone and leaked password hashes); (b) also allow anonymous users
-   where the anonymous role may add issues (drop `require_login`, the permission check still applies).
-2. **Only issue fields.** The search now serves `sql_search` fields of issues only (the hooks only wire issue
-   forms). A `sql_search` field on projects, users or time entries that someone wired up with their own
-   script would stop. Recommendation: keep; tell me if GEOxyz has such a field.
-3. **Upstream sync** stays optional (decided NIET NODIG): upstream 3d36b17 (multi select) and 13d0792
-   (IssueHotButton) are features; merging them would touch the same JS/CSS/hook as #6103/#6211/#6600.
-   Recommendation: only when GEOxyz wants multi select, as a separate change on top of this branch.
-4. **Stored value vs label** of the `sql` format (see findings): leave as upstream (recommended), or show
-   the label on the issue and in lists (a behaviour change for existing fields).
+Jan answered the open questions on 2026-10-07 (docs/DECISIONS-2026-10-07.md, coordinating session
+https://claude.ai/code/session_01GiSsYPm3bxvqrpZkdCxNoi). No open questions remain.
+
+General decisions (every GEOxyz plugin), 2026-10-07:
+
+- Straight to Redmine 7, no backports to 5.1: `redmine70-migration` is what goes live; Redmine 5.1
+  compatibility is no longer a requirement (rule dropped below).
+- PostgreSQL only (production runs PostgreSQL 16): tests and e2e on PostgreSQL; MariaDB runs no longer
+  required, a MariaDB-only problem is a note here, not a blocker. SQL stays portable where that is free.
+- deface without a version constraint: n/a, this plugin has no Gemfile and does not use deface.
+- Core methods that other plugins also patch: `prepend`, never `alias_method`. Checked: the plugin's only
+  core patch is `CustomValue#initialize` through `prepend` (lib/custom_sql_search_hook.rb); no
+  `alias_method` anywhere. Project > Settings, the issue list and an issue page with the other GEOxyz
+  plugins installed: see "Results (2026-10-07)".
+- GitHub Actions stay manual only (`workflow_dispatch`): unchanged.
+
+Decisions for this plugin, 2026-10-07:
+
+1. **Login and permissions for the SQL search** (custom_field_sql-q1): Jan chose **B**, "Anoniem toelaten
+   waar de anonieme rol issues mag aanmaken" (anonymous users get suggestions again; the permission check
+   stays, the address works without login again). Built: see the work list (item 10).
+2. **Only issue fields** (custom_field_sql-q2): Jan chose **B**, "Ja, die velden moeten blijven werken"
+   (`sql_search` fields on projects, users and time entries must keep working). Built: item 11.
+3. **Upstream sync** (custom_field_sql-q3): Jan chose **B**, "Later toevoegen als aparte wijziging", with the
+   note: "Jan: NU doen, in deze migratie (niet later): de upstream-functies meervoudige keuze en
+   IssueHotButton meenemen." Built now, as its own change on this branch: item 12.
+4. **Stored value vs label** of the `sql` format (custom_field_sql-q4): Jan chose **A**, "Zo laten, zoals
+   upstream" (nothing changes for existing fields; per field solved with a one-column query). No code:
+   the behaviour stays as upstream (see "Findings not fixed").
 
 ## How to test
 
@@ -236,7 +261,7 @@ results quoted in the analysis come from it.
 1. **Start**: `git fetch && git checkout redmine70-migration && git pull`. Read this whole file,
    including the analysis report at the bottom. Do not reopen decisions recorded here.
 2. **Baseline, before you change anything**:
-   - the plugin's tests on Redmine 7.0-stable-GEOxyz with PostgreSQL and with MariaDB;
+   - the plugin's tests on Redmine 7.0-stable-GEOxyz with PostgreSQL;
    - a real running Redmine with this plugin (`./.codex/start_server.sh`) and the browser run
      (`./.codex/e2e.sh`: smoke over every page the plugin adds, plus the core issue flows).
    Write the numbers here. Something already broken now is a finding, not your regression.
@@ -248,9 +273,8 @@ results quoted in the analysis come from it.
 4. **GEOxyz changes**: go through the table above, one item at a time. Each kept or re-made change
    is its own commit with a test that proves it. Record the verdict in the table.
 5. **Work list**: then the numbered list, in order. One concern per commit.
-6. **Portability**: everything must run on Redmine's supported databases (PostgreSQL,
-   MySQL/MariaDB; SQLite where the plugin already supports it). Migrations must be reversible and
-   are run down and up on PostgreSQL and MariaDB.
+6. **Portability**: tests and e2e run on PostgreSQL only (Jan, 2026-10-07); keep SQL portable where
+   that costs nothing. Migrations must be reversible and are run down and up on PostgreSQL.
 7. **Together**: run with the other GEOxyz plugins installed (the migration kit's harness, or
    `RMP_EXTRA_PLUGINS`). A failure that only appears in combination is a finding to record here.
 8. **End to end, visually, every function**: on the real Redmine from `start_server.sh`
@@ -269,7 +293,6 @@ results quoted in the analysis come from it.
      reads them; API through `t.page.request`) and record command and result.
    - Before pictures where behaviour or layout changes: the branch GEOxyz runs today, on
      Redmine 5.1, same scenarios, `RMP_E2E_OUT=docs/e2e/before`.
-   - Run the whole e2e set once on MariaDB as well (`RMP_DB=mariadb`, then `start_server.sh --reset`).
 9. **Independent review**: first your own, adversarial: re-read the whole diff as if someone
    else wrote it and you are paid to reject it. Then, **when `OPENAI_API_KEY` is set in the
    session**, `./.codex/openai_review.sh`: it sends the diff of this branch to an OpenAI model
@@ -314,8 +337,12 @@ results quoted in the analysis come from it.
   (on by default: `t.sudo()` in a scenario). The breaker list is in the migration kit's CHECKLIST.md.
 - **Locales**: keep the locales the plugin ships in sync; translate a new key by matching the
   closest existing key in the same file, not from scratch; do not add new languages.
-- **5.1 compatibility**: prefer fixes that also run on Redmine 5.1 so they can be merged early;
-  say so when a fix cannot.
+- **No 5.1** (Jan, 2026-10-07): GEOxyz goes straight to Redmine 7; no backports, no code paths that
+  exist only for Redmine 5.1.
+- **Databases** (Jan, 2026-10-07): PostgreSQL only for tests and e2e (production runs PostgreSQL 16).
+  Keep SQL portable where that costs nothing; a MariaDB-only problem is a note here, not a blocker.
+- **Core patches**: a core method that other installed plugins also patch is patched with `prepend`,
+  never with `alias_method` (mixing both on one method recurses).
 - **Git**: work on `redmine70-migration` only; never push to the default branch; never force-push
   a branch someone else uses. Descriptive commit messages (what and why). Push after every
   commit, together with the updated status in this file: a cloud session can stop at a usage
@@ -326,8 +353,7 @@ results quoted in the analysis come from it.
 ## Definition of done
 
 - All items of the work list are done or explicitly deferred with a reason, in this file.
-- The plugin's tests are green on Redmine 7.0-stable-GEOxyz with PostgreSQL and MariaDB
-  (numbers in this file); boot, production-like eager load, migrations up/down OK.
+- The plugin's tests are green on Redmine 7.0-stable-GEOxyz with PostgreSQL (numbers in this file); boot, production-like eager load, migrations up/down OK.
 - Every function in the inventory exercised end to end on a real running Redmine, with and
   without permissions and on its failure paths; `./.codex/e2e.sh` green; screenshots looked at,
   committed in `docs/e2e/` and listed.
