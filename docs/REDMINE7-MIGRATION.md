@@ -99,7 +99,7 @@ In this order: things that break, security, the GEOxyz changes, the open items, 
     test_anonymous_may_search_where_the_anonymous_role_may_add_issues fails without it (401).
 11. Decision 2: the search also serves `sql_search` fields of projects, users and time entries, each with
     the permission of the form the field sits on. **DONE** (commit "Search: sql_search fields of projects,
-    users and time entries"): project field = `edit_project` (no project: `add_project`/`add_subprojects`),
+    users and time entries"): project field = `edit_project` or `add_subprojects` (ac6586a) in the project (no project: `add_project`/`add_subprojects`),
     time entry field = `log_time`/`edit_time_entries`/`edit_own_time_entries` in the project (of the issue),
     user field = administrator, or any logged in user when the field is editable; the field visible in
     each case. The plugin still wires only issue forms (as upstream); other fields need a script of one's
@@ -168,7 +168,7 @@ Redmine 7.0.1 (7.0-stable-GEOxyz), Ruby 3.3.6, PostgreSQL 16.15, production mode
 | inline edit with redmine_inline_edit_issues (docs/e2e/together/inline_edit.mjs) | 2 screenshots, 0 problems |
 
 Every screenshot was opened and looked at. Review: own adversarial review of the new commits; OpenAI
-(`gpt-5`, docs/reviews/openai-2026-10-07-*.md): no findings.
+(`gpt-5`, docs/reviews/openai-2026-10-07-*.md): first round no findings; second round (whole range incl. docs) 3 findings, 1 partly accepted and fixed in ac6586a, 2 rejected with reasons.
 
 ## Results (2026-10-06)
 
