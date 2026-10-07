@@ -102,7 +102,16 @@ In this order: things that break, security, the GEOxyz changes, the open items, 
     each case. The plugin still wires only issue forms (as upstream); other fields need a script of one's
     own (README). 6 new tests fail without it.
 12. Decision 3: upstream multi select (3d36b17) and IssueHotButton compatibility (13d0792), adapted to this
-    branch (shared script builder, bulk edit, CSS scope, `edited` flag, Redmine 7 icons, I18n). **TODO**
+    branch (shared script builder, bulk edit, CSS scope, `edited` flag, Redmine 7 icons, I18n). **DONE** (commit
+    "Multi select for sql_search (upstream 3d36b17, 13d0792)"). Differences from upstream: the values live in a
+    hidden input that carries the field's name and is updated on every change, so the issue form update
+    (tracker change), redmine_inline_edit_issues and `form.submit()` (IssueHotButton) all send them; upstream
+    wrote them only in a submit handler plus a `form.submit` override, and lost them on a tracker change.
+    No tag sends an empty value (bulk edit: no change) instead of `[]`; a stored value that is not a JSON list
+    is shown and edited as one value (upstream raised on `"123"`); the "+" is a button with core's
+    `button_add` title instead of the Redmine 5 `icon icon-add` and a Russian title; the default value query
+    gives a one-element list; results use the scoped `sql-autocomplete` class (#6211) and set `edited`
+    (#6103); the bulk edit form gets it too. 5 new unit tests fail without it; test/e2e/multi_select.mjs.
 
 ## GEOxyz changes to review or re-apply
 

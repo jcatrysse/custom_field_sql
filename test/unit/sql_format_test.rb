@@ -50,4 +50,33 @@ class CustomFieldSqlFormatTest < ActiveSupport::TestCase
     issue = Issue.new # no project, no tracker yet
     assert_equal 'eCookbook', CustomValue.new(custom_field: IssueCustomField.find_by(name: 'Default issue'), customized: issue).value
   end
+
+  # upstream 3d36b17 (Jan's decision 3): multi select stores a JSON array
+  def test_multi_select_value_is_shown_as_a_list
+    field = IssueCustomField.create!(name: 'Subjects', field_format: 'sql_search', is_for_all: true, trackers: Tracker.all,
+                                     sql: "select subject as value from issues", multi_select: '1')
+    assert_equal '1', field.reload.multi_select
+    format = field.format
+    assert_equal 'a, b <c>', format.formatted_value(nil, field, '["a","b <c>"]', nil, false)
+    assert_equal '1, 2', format.formatted_value(nil, field, '[1,2]', nil, false)
+    assert_equal 'plain', format.formatted_value(nil, field, 'plain', nil, false) # a value from before multi select
+    assert_equal '123', format.formatted_value(nil, field, '123', nil, false)    # JSON, but not a list
+    assert_equal '', format.formatted_value(nil, field, '', nil, false)
+    field.multi_select = '0'
+    assert_equal '["a","b"]', format.formatted_value(nil, field, '["a","b"]', nil, false)
+  end
+
+  def test_multi_select_default_value_is_a_list
+    field = IssueCustomField.create!(name: 'Subjects', field_format: 'sql_search', is_for_all: true, trackers: Tracker.all,
+                                     sql: "select subject as value from issues", multi_select: '1',
+                                     default_value: "select subject from issues where id = 1")
+    issue = Issue.new(project_id: 1, tracker_id: 1)
+    assert_equal '["Cannot print recipes"]', issue.custom_field_values.detect { |v| v.custom_field == field }.value
+  end
+
+  def test_multi_select_is_a_safe_attribute
+    field = IssueCustomField.new
+    field.safe_attributes = { 'name' => 'Subjects', 'field_format' => 'sql_search', 'multi_select' => '1' }
+    assert_equal '1', field.multi_select
+  end
 end

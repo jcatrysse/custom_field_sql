@@ -4,8 +4,20 @@ module CustomFieldSql
 
       class SqlSearch < Redmine::FieldFormat::StringFormat
         add 'sql_search'
-        field_attributes :sql, :form_params, :search_by_click, :db_config, :strict_selection, :strict_error_message
+        field_attributes :sql, :form_params, :search_by_click, :db_config, :strict_selection, :strict_error_message, :multi_select
         self.form_partial = 'custom_fields/formats/sql'
+
+        # With multi select the value is a JSON array of strings, shown as a
+        # comma separated list; anything else is shown as it is.
+        def self.multi_values(value)
+          values = JSON.parse(value.to_s) rescue nil
+          values.map(&:to_s) if values.is_a?(Array)
+        end
+
+        def formatted_value(view, custom_field, value, customized=nil, html=false)
+          values = custom_field.multi_select.to_s == '1' && self.class.multi_values(value)
+          values ? values.join(', ') : super
+        end
 
         def select_default_value(custom_field, object = nil)
           return if custom_field.default_value.blank?
@@ -14,7 +26,9 @@ module CustomFieldSql
             params[:tracker_id] = object.tracker_id || 'null'
             params[:project_id] = object.project_id || 'null'
           end
-          ActiveRecord::Base.connection.select_value(custom_field.default_value % params)
+          value = ActiveRecord::Base.connection.select_value(custom_field.default_value % params)
+          value = [value.to_s].to_json if custom_field.multi_select.to_s == '1' && value.to_s != '' && !self.class.multi_values(value)
+          value
         end
       end
 

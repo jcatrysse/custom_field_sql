@@ -13,3 +13,61 @@
 .sql-tooltip .ui-tooltip-content {
     color: red;
 }
+/* multi select (upstream 3d36b17): tags under the input */
+.sql-multi-wrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.sql-multi-tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.sql-multi-tag {
+    display: inline-flex;
+    align-items: center;
+    background: #e8e8e8;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    padding: 2px 6px;
+    font-size: 12px;
+    line-height: 1.4;
+    max-width: 100%;
+}
+
+.sql-multi-tag-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sql-multi-tag a.sql-multi-tag-remove {
+    margin-left: 4px;
+    color: #999;
+    font-weight: bold;
+    font-size: 14px;
+    line-height: 1;
+    text-decoration: none;
+}
+
+.sql-multi-tag a.sql-multi-tag-remove:hover {
+    color: #c00;
+    text-decoration: none;
+}
+
+.sql-multi-add-btn {
+    color: #fff;
+    background: #4caf50;
+    border: 1px solid #3d8b40;
+    border-radius: 3px;
+    font-weight: bold;
+    line-height: 1;
+    padding: 2px 6px;
+    cursor: pointer;
+}

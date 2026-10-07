@@ -40,12 +40,18 @@ class CustomSqlSearchHook < Redmine::Hook::ViewListener
     options[:search_by_click] = field.search_by_click ||= 0
     options[:strict_selection] = field.strict_selection ||= 0
     options[:strict_error_message] = field.strict_error_message ||= l(:text_sql_strict_error_message_default)
+    observe = 'observeSqlField'
+    if field.multi_select.to_s == '1'
+      observe = 'observeSqlMultiField'
+      options[:add_title] = l(:button_add)
+      options[:remove_title] = l(:button_delete)
+    end
     url = "#{Redmine::Utils.relative_url_root}/custom_sql_search/search?project_id=#{project_id}"
     url << "&issue_id=#{issue_id}" unless issue_id.nil?
     url << "&custom_field_id=#{field.id}"
     html = "<script>\n"
     html << "//<![CDATA[\n"
-    html << "observeSqlField('issue_custom_field_values_#{field.id}', '#{url}', JSON.parse(#{p.to_json.dump}), JSON.parse(#{options.to_json.dump}))\n"
+    html << "#{observe}('issue_custom_field_values_#{field.id}', '#{url}', JSON.parse(#{p.to_json.dump}), JSON.parse(#{options.to_json.dump}))\n"
     html << "//]]>\n"
     html << "</script>\n"
   end

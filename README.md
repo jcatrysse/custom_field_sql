@@ -120,6 +120,22 @@ Query can use parameters
 * %{tracker_id}
 * %{project_id}
 
+Multiple selection
+----------------------
+A **sql search** field with "multiple selection" (upstream 2.9) keeps several values:
+* the input searches; a picked value becomes a tag under it, the × on a tag removes it;
+* with "strict selection" off, a value without a search result is added with the green "+" (or Enter);
+* the values are stored as a JSON array (`["val1","val2"]`) and shown as `val1, val2` on the
+  issue, in the issue list and in the history; a value from before the field had multiple
+  selection is shown as it is;
+* on the bulk edit form the tags replace the values of every selected issue; with no tag the
+  values stay, "Clear" empties them;
+* the default value query gives the first value;
+* in an issue filter use "contains": the stored text is the JSON array.
+
+The selected values are kept in a hidden input, so a form sent with `form.submit()` (the
+IssueHotButton plugin does that) carries them as well.
+
 Scripts
 ----------------------
 view_customize/custom_field_autselect_first_value.js

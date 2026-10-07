@@ -11,3 +11,4 @@ en:
   field_strict_selection: strict selection (only dictionary values)
   field_strict_error_message: strict error message
   text_sql_strict_error_message_default: it is not valid value
+  field_multi_select: multiple selection

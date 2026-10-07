@@ -73,4 +73,23 @@ class CustomSqlSearchHookTest < ActiveSupport::TestCase
     html = @hook.view_issues_form_details_bottom(issue: Issue.find(1))
     assert_equal 1, html.scan('</script>').size, html
   end
+
+  # upstream 3d36b17 (Jan's decision 3), issue form and bulk edit
+  def test_multi_select_script
+    @field.update!(multi_select: '1')
+    [@hook.view_issues_form_details_bottom(issue: Issue.find(1)),
+     @hook.view_issues_bulk_edit_details_bottom(issues: [Issue.find(1), Issue.find(2)])].each do |html|
+      assert_include "observeSqlMultiField('issue_custom_field_values_#{@field.id}', ", html
+      assert_not_include 'observeSqlField(', html
+      options = JSON.parse(html.scan(/JSON\.parse\((".*?[^\\]")\)/).last.first.undump)
+      assert_equal 'Add', options['add_title']
+      assert_equal 'Delete', options['remove_title']
+    end
+  end
+
+  def test_single_select_script_has_no_multi_options
+    html = @hook.view_issues_form_details_bottom(issue: Issue.find(1))
+    options = JSON.parse(html.scan(/JSON\.parse\((".*?[^\\]")\)/).last.first.undump)
+    assert_nil options['add_title']
+  end
 end

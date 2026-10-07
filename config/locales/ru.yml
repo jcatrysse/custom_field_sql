@@ -11,3 +11,4 @@ ru:
   field_strict_selection: строгий выбор (только по справочнику)
   field_strict_error_message: сообщение об ошибке строгого выбора
   text_sql_strict_error_message_default: неверное значение
+  field_multi_select: множественный выбор
