@@ -104,9 +104,10 @@ class CustomSqlSearchController < ApplicationController
         [:add_issues, :edit_issues, :edit_own_issues].any? { |p| user.allowed_to?(p, @project) } &&
         (@issue.nil? || @issue.attributes_editable?(user))
     when ProjectCustomField
-      # project settings, or the new project form
+      # project settings, or the new project form (with a project: the new
+      # subproject form of that parent)
       @custom_field.visible_by?(@project, user) &&
-        (@project ? user.allowed_to?(:edit_project, @project) :
+        (@project ? user.allowed_to?(:edit_project, @project) || user.allowed_to?(:add_subprojects, @project) :
                     user.allowed_to_globally?(:add_project) || user.allowed_to_globally?(:add_subprojects))
     when TimeEntryCustomField
       # log or edit time, in the project of the given issue

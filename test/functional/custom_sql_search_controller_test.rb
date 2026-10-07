@@ -194,6 +194,9 @@ class CustomSqlSearchControllerTest < Redmine::ControllerTest
     Role.find(1).remove_permission!(:edit_project)
     search(custom_field_id: field.id)
     assert_response 403
+    Role.find(1).add_permission!(:add_subprojects) # the new subproject form of project 1
+    search(custom_field_id: field.id)
+    assert_response :success
   end
 
   def test_project_field_on_the_new_project_form

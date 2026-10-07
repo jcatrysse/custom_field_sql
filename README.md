@@ -58,7 +58,7 @@ The plugin wires **sql search** fields of issues (issue form and bulk edit). A *
 field of a project, a user or a time entry works through a script of your own (view_customize,
 for instance) that calls `observeSqlField('<input id>', '<url>', {}, {})` with the url
 `/custom_sql_search/search?custom_field_id=<id>&project_id=<id>` (`&issue_id=<id>` for a time
-entry). Who gets results: for a project field, users who may edit the project, or create
+entry). Who gets results: for a project field, users who may edit the project or add subprojects to it, or create
 one when there is no project id; for a time entry field, users who may log or edit time in
 the project (of the issue, when given), or log time anywhere when there is neither; for a
 user field, administrators, and every logged in user when the field is editable (My account).
