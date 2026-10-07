@@ -51,8 +51,8 @@ like `1,2,3`, stays a number). %{project_id} and %{issue_id} are the ids of the 
 and the issue the user may see; `null` for a new issue. Only `%{name}` placeholders are
 supported; write `%%` for a literal percent sign.
 
-Only logged in users who can add or edit issues in the project, and who may see the
-field there, get results. The query itself runs with Redmine's database account, not
+Only users who can add or edit issues in the project, and who may see the field there,
+get results; anonymous users too, where the anonymous role may add or edit issues. The query itself runs with Redmine's database account, not
 with the rights of the user: it sees every project, private ones included. Limit it
 yourself where that matters, for example with `project_id = %{project_id}`.
 
