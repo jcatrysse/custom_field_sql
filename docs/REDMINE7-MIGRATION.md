@@ -95,7 +95,12 @@ In this order: things that break, security, the GEOxyz changes, the open items, 
     anonymous role may add or edit issues (and see the field); every other check stays. **DONE** (commit "Search: anonymous users where the anonymous role may add issues");
     test_anonymous_may_search_where_the_anonymous_role_may_add_issues fails without it (401).
 11. Decision 2: the search also serves `sql_search` fields of projects, users and time entries, each with
-    the permission of the form the field sits on. **TODO**
+    the permission of the form the field sits on. **DONE** (commit "Search: sql_search fields of projects,
+    users and time entries"): project field = `edit_project` (no project: `add_project`/`add_subprojects`),
+    time entry field = `log_time`/`edit_time_entries`/`edit_own_time_entries` in the project (of the issue),
+    user field = administrator, or any logged in user when the field is editable; the field visible in
+    each case. The plugin still wires only issue forms (as upstream); other fields need a script of one's
+    own (README). 6 new tests fail without it.
 12. Decision 3: upstream multi select (3d36b17) and IssueHotButton compatibility (13d0792), adapted to this
     branch (shared script builder, bulk edit, CSS scope, `edited` flag, Redmine 7 icons, I18n). **TODO**
 

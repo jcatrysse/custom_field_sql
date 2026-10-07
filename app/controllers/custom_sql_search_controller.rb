@@ -42,7 +42,7 @@ class CustomSqlSearchController < ApplicationController
   def search
     # every request value is escaped for its place in the SQL; the ids are the
     # ones looked up and checked above
-    trusted = { project_id: @project.id, issue_id: @issue ? @issue.id : 'null' }
+    trusted = { project_id: @project ? @project.id : 'null', issue_id: @issue ? @issue.id : 'null' }
 
     if @custom_field.db_config.blank?
       sql = CustomFieldSql::SqlTemplate.render(@custom_field.sql, params.as_json, trusted: trusted)
@@ -59,29 +59,65 @@ class CustomSqlSearchController < ApplicationController
   end
 
   private
-  # Only the sql_search fields of issues call this action (the issue form and the
-  # bulk edit form).
+  # The issue form and the bulk edit form call this action for issue fields; a
+  # sql_search field of a project, user or time entry is wired by a script of
+  # one's own (view_customize, for instance).
+  SEARCHABLE_FIELD_TYPES = %w(IssueCustomField ProjectCustomField UserCustomField TimeEntryCustomField)
+
   def find_custom_field
-    @custom_field = IssueCustomField.where(field_format: 'sql_search').find(params[:custom_field_id])
+    @custom_field = CustomField.where(type: SEARCHABLE_FIELD_TYPES, field_format: 'sql_search').find(params[:custom_field_id])
   rescue ActiveRecord::RecordNotFound
     render_404
   end
 
+  # An issue field needs a project; the others may go without one (a new
+  # project, the account page, time logged from the global form).
   def find_project_and_issue
-    @project = Project.find(params[:project_id])
-    @issue = params[:issue_id].blank? || params[:issue_id] == 'null' ? nil : Issue.visible.find(params[:issue_id])
+    if @custom_field.is_a?(IssueCustomField) || !blank_id?(params[:project_id])
+      @project = Project.find(params[:project_id])
+    end
+    if (@custom_field.is_a?(IssueCustomField) || @custom_field.is_a?(TimeEntryCustomField)) && !blank_id?(params[:issue_id])
+      @issue = Issue.visible.find(params[:issue_id])
+      @project ||= @issue.project
+    end
   rescue ActiveRecord::RecordNotFound
     render_404
   end
 
-  # The user must be able to fill in this field: see it, in a project that has
-  # it and where the user may add or edit issues, and edit the given issue (on
-  # the edit form the project can be the one the issue is being moved to).
+  def blank_id?(id)
+    id.blank? || id == 'null'
+  end
+
   def authorize_search
-    allowed = @project.all_issue_custom_fields.include?(@custom_field) &&
-              @custom_field.visible_by?(@project, User.current) &&
-              [:add_issues, :edit_issues, :edit_own_issues].any? { |p| User.current.allowed_to?(p, @project) } &&
-              (@issue.nil? || @issue.attributes_editable?(User.current))
-    deny_access unless allowed
+    deny_access unless search_allowed?
+  end
+
+  # The user must be able to fill in this field on the form it belongs to.
+  def search_allowed?
+    user = User.current
+    case @custom_field
+    when IssueCustomField
+      # see the field, in a project that has it and where the user may add or
+      # edit issues, and edit the given issue (on the edit form the project can
+      # be the one the issue is being moved to)
+      @project.all_issue_custom_fields.include?(@custom_field) &&
+        @custom_field.visible_by?(@project, user) &&
+        [:add_issues, :edit_issues, :edit_own_issues].any? { |p| user.allowed_to?(p, @project) } &&
+        (@issue.nil? || @issue.attributes_editable?(user))
+    when ProjectCustomField
+      # project settings, or the new project form
+      @custom_field.visible_by?(@project, user) &&
+        (@project ? user.allowed_to?(:edit_project, @project) :
+                    user.allowed_to_globally?(:add_project) || user.allowed_to_globally?(:add_subprojects))
+    when TimeEntryCustomField
+      # log or edit time, in the project of the given issue
+      @custom_field.visible_by?(@project, user) &&
+        (@project ? [:log_time, :edit_time_entries, :edit_own_time_entries].any? { |p| user.allowed_to?(p, @project) } :
+                    user.allowed_to_globally?(:log_time)) &&
+        (@issue.nil? || @issue.project == @project)
+    when UserCustomField
+      # the user form (administrators) or the user's own account page
+      user.admin? || (user.logged? && @custom_field.editable?)
+    end
   end
 end

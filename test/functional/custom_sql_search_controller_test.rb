@@ -169,14 +169,107 @@ class CustomSqlSearchControllerTest < Redmine::ControllerTest
     assert_response :success
   end
 
-  def test_only_sql_search_fields_of_issues
+  # issue, project, user and time entry fields (Jan's decision 2), nothing else
+  def test_only_sql_search_fields_of_issues_projects_users_and_time_entries
     @request.session[:user_id] = 1
     search(custom_field_id: 2) # a string field
     assert_response 404
-    other = ProjectCustomField.create!(name: 'Project search', field_format: 'sql_search', sql: "select 1 as value")
+    other = VersionCustomField.create!(name: 'Version search', field_format: 'sql_search', sql: "select 1 as value")
     search(custom_field_id: other.id)
     assert_response 404
     search(project_id: 999)
     assert_response 404
+  end
+
+  def test_project_field_needs_edit_project
+    field = ProjectCustomField.create!(name: 'Project search', field_format: 'sql_search', visible: true,
+                                       sql: "select name as value, coalesce(%{issue_id}, 0) as label from projects " \
+                                            "where id = %{project_id} and '%{term}' <> ''")
+    @request.session[:user_id] = 2
+    search(custom_field_id: field.id, issue_id: 1) # an issue means nothing to a project field
+    assert_response :success
+    assert_equal [{ 'value' => 'eCookbook', 'label' => 'eCookbook (0)' }], JSON.parse(response.body)
+    search(custom_field_id: field.id, project_id: 999)
+    assert_response 404
+    Role.find(1).remove_permission!(:edit_project)
+    search(custom_field_id: field.id)
+    assert_response 403
+  end
+
+  def test_project_field_on_the_new_project_form
+    field = ProjectCustomField.create!(name: 'Project search', field_format: 'sql_search', visible: true,
+                                       sql: "select coalesce(%{project_id}, 0) as value")
+    @request.session[:user_id] = 2 # manager: add_project
+    search(custom_field_id: field.id, project_id: '')
+    assert_response :success
+    assert_equal [0], values
+    @request.session[:user_id] = 3 # developer: neither add_project nor add_subprojects
+    search(custom_field_id: field.id, project_id: 'null')
+    assert_response 403
+  end
+
+  def test_hidden_project_field_is_refused
+    field = ProjectCustomField.create!(name: 'Project search', field_format: 'sql_search', visible: false, role_ids: [2],
+                                       sql: "select 1 as value")
+    @request.session[:user_id] = 2 # manager in project 1, developer in project 2
+    search(custom_field_id: field.id)
+    assert_response 403
+    search(custom_field_id: field.id, project_id: 2)
+    assert_response :success
+  end
+
+  def test_time_entry_field_needs_log_time
+    field = TimeEntryCustomField.create!(name: 'Time search', field_format: 'sql_search', visible: true,
+                                         sql: "select subject as value, id as label from issues " \
+                                              "where id = %{issue_id} and project_id = %{project_id}")
+    @request.session[:user_id] = 2
+    search(custom_field_id: field.id, issue_id: 1)
+    assert_response :success
+    assert_equal ['Cannot print recipes'], values
+    search(custom_field_id: field.id, project_id: '', issue_id: 1) # the project of the issue
+    assert_response :success
+    assert_equal ['Cannot print recipes'], values
+    search(custom_field_id: field.id, project_id: 2, issue_id: 1) # an issue of another project
+    assert_response 403
+    search(custom_field_id: field.id, project_id: '', issue_id: '') # the global time entry form
+    assert_response :success
+    assert_equal [], values
+    search(custom_field_id: field.id, issue_id: 999)
+    assert_response 404
+    Role.find(1).remove_permission!(:log_time, :edit_time_entries, :edit_own_time_entries)
+    search(custom_field_id: field.id, issue_id: 1)
+    assert_response 403
+  end
+
+  def test_hidden_time_entry_field_is_refused
+    field = TimeEntryCustomField.create!(name: 'Time search', field_format: 'sql_search', visible: false, role_ids: [1],
+                                         sql: "select 1 as value")
+    @request.session[:user_id] = 3 # developer
+    search(custom_field_id: field.id)
+    assert_response 403
+    @request.session[:user_id] = 2 # manager
+    search(custom_field_id: field.id)
+    assert_response :success
+  end
+
+  def test_user_field_for_administrators_and_the_own_account
+    field = UserCustomField.create!(name: 'User search', field_format: 'sql_search', visible: true, editable: true,
+                                    sql: "select login as value from users where login like '%{term}%%' order by login")
+    @request.session[:user_id] = 2 # my account: an editable field
+    search(custom_field_id: field.id, project_id: '', term: 'jsm')
+    assert_response :success
+    assert_equal ['jsmith'], values
+    field.update!(editable: false)
+    search(custom_field_id: field.id, project_id: '', term: 'jsm')
+    assert_response 403
+    @request.session[:user_id] = 1 # the user form
+    search(custom_field_id: field.id, project_id: '', term: 'jsm')
+    assert_response :success
+    field.update!(editable: true)
+    @request.session[:user_id] = nil
+    with_settings login_required: '0' do
+      search(custom_field_id: field.id, project_id: '', term: 'jsm')
+      assert_response 401
+    end
   end
 end

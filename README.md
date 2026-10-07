@@ -52,7 +52,17 @@ and the issue the user may see; `null` for a new issue. Only `%{name}` placehold
 supported; write `%%` for a literal percent sign.
 
 Only users who can add or edit issues in the project, and who may see the field there,
-get results; anonymous users too, where the anonymous role may add or edit issues. The query itself runs with Redmine's database account, not
+get results; anonymous users too, where the anonymous role may add or edit issues.
+
+The plugin wires **sql search** fields of issues (issue form and bulk edit). A **sql search**
+field of a project, a user or a time entry works through a script of your own (view_customize,
+for instance) that calls `observeSqlField('<input id>', '<url>', {}, {})` with the url
+`/custom_sql_search/search?custom_field_id=<id>&project_id=<id>` (`&issue_id=<id>` for a time
+entry). Who gets results: for a project field, users who may edit the project, or create
+one when there is no project id; for a time entry field, users who may log or edit time in
+the project (of the issue, when given), or log time anywhere when there is neither; for a
+user field, administrators, and every logged in user when the field is editable (My account).
+The field must be visible to the user in each case. The query itself runs with Redmine's database account, not
 with the rights of the user: it sees every project, private ones included. Limit it
 yourself where that matters, for example with `project_id = %{project_id}`.
 
