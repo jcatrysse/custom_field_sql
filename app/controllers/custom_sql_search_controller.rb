@@ -62,10 +62,9 @@ class CustomSqlSearchController < ApplicationController
   # The issue form and the bulk edit form call this action for issue fields; a
   # sql_search field of a project, user or time entry is wired by a script of
   # one's own (view_customize, for instance).
-  SEARCHABLE_FIELD_TYPES = %w(IssueCustomField ProjectCustomField UserCustomField TimeEntryCustomField)
-
   def find_custom_field
-    @custom_field = CustomField.where(type: SEARCHABLE_FIELD_TYPES, field_format: 'sql_search').find(params[:custom_field_id])
+    types = %w(IssueCustomField ProjectCustomField UserCustomField TimeEntryCustomField)
+    @custom_field = CustomField.where(type: types, field_format: 'sql_search').find(params[:custom_field_id])
   rescue ActiveRecord::RecordNotFound
     render_404
   end
