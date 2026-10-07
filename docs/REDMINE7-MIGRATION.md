@@ -92,7 +92,8 @@ In this order: things that break, security, the GEOxyz changes, the open items, 
 **Jan's decisions of 2026-10-07** (one commit each, with a test that fails without it)
 
 10. Decision 1: `/custom_sql_search/search` without login again; anonymous users get results where the
-    anonymous role may add or edit issues (and see the field); every other check stays. **TODO**
+    anonymous role may add or edit issues (and see the field); every other check stays. **DONE** (commit "Search: anonymous users where the anonymous role may add issues");
+    test_anonymous_may_search_where_the_anonymous_role_may_add_issues fails without it (401).
 11. Decision 2: the search also serves `sql_search` fields of projects, users and time entries, each with
     the permission of the form the field sits on. **TODO**
 12. Decision 3: upstream multi select (3d36b17) and IssueHotButton compatibility (13d0792), adapted to this
@@ -120,8 +121,9 @@ Actions the person doing the upgrade must take, or know about, for this plugin:
     numbers and integer lists (`1,2,3`) are unchanged, so `id = %{p0}` and `id in (%{p0})` keep working;
     a query that pasted SQL text through a form parameter (column names, operators) stops working, by design;
   - a value inside a comment is dropped.
-- Users without `add_issues`, `edit_issues` or `edit_own_issues` in the project, anonymous users, and users
-  who may not see the field get no search results any more (403/404); see "Open questions for Jan".
+- Users without `add_issues`, `edit_issues` or `edit_own_issues` in the project, and users who may not see
+  the field, get no search results any more (403/404). Anonymous users get results where the anonymous
+  role may add or edit issues (Jan's decision 1); elsewhere 401.
 - Nothing else: no migrations, no settings, no cron, no files.
 
 

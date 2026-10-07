@@ -1,6 +1,7 @@
 class CustomSqlSearchController < ApplicationController
 
-  before_action :require_login
+  # no require_login: anonymous users may search where the anonymous role may
+  # add or edit issues (authorize_search)
   before_action :find_custom_field
   before_action :find_project_and_issue
   before_action :authorize_search

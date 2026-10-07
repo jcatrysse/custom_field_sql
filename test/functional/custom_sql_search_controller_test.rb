@@ -37,6 +37,23 @@ class CustomSqlSearchControllerTest < Redmine::ControllerTest
     end
   end
 
+  def test_anonymous_may_search_where_the_anonymous_role_may_add_issues
+    Role.anonymous.add_permission!(:add_issues)
+    with_settings login_required: '0' do
+      search
+      assert_response :success
+      assert_equal ['Cannot print recipes', 'Error 281 when updating a recipe'], values
+      search(project_id: 2) # private project
+      assert_response 401
+      search(issue_id: 1) # anonymous may not edit issue 1
+      assert_response 401
+    end
+    with_settings login_required: '1' do
+      search
+      assert_response 401
+    end
+  end
+
   def test_term_cannot_inject_sql
     @request.session[:user_id] = 2
     ["zzz' or 1=1 or subject like '", "zzz%' union select login, id from users --",
