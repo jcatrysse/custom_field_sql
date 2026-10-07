@@ -71,6 +71,6 @@ const res = await t.page.request.get(t.BASE + url('E2E SQL search'), { headers: 
 if (res.status() !== 403) t.problems.push(`anonymous XHR: HTTP ${res.status()}`);
 await t.go(url('E2E SQL search'));
 if (!t.page.url().includes('/login')) t.problems.push(`anonymous page: not sent to login (${t.page.url()})`);
-await t.shot('anonymous', `Anonymous (login not required in the settings): XHR HTTP ${res.status()}, the page sends to the login form`, { full: false });
+await t.shot('anonymous', `Anonymous (login not required in the settings, the anonymous role may not add issues): XHR HTTP ${res.status()}, the page sends to the login form; with "Add issues" see anonymous_search`, { full: false });
 
 await t.done();
