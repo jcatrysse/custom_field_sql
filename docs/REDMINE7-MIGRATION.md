@@ -168,7 +168,7 @@ Redmine 7.0.1 (7.0-stable-GEOxyz), Ruby 3.3.6, PostgreSQL 16.15, production mode
 | inline edit with redmine_inline_edit_issues (docs/e2e/together/inline_edit.mjs) | 2 screenshots, 0 problems |
 
 Every screenshot was opened and looked at. Review: own adversarial review of the new commits; OpenAI
-(`gpt-5`, docs/reviews/openai-2026-10-07-*.md): first round no findings; second round (whole range incl. docs) 3 findings, 1 partly accepted and fixed in ac6586a, 2 rejected with reasons.
+(`gpt-5`, docs/reviews/openai-2026-10-07-*.md): first round no findings; second round (whole range incl. docs) 3 findings, 1 partly accepted and fixed in ac6586a, 2 rejected with reasons; third round repeated only the two rejected ones (resolutions in openai-2026-10-07-1e627e2.md), nothing new that holds.
 
 ## Results (2026-10-06)
 
