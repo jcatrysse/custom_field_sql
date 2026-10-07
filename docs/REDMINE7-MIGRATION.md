@@ -19,13 +19,13 @@ what is left. Written 2026-10-06 from a measured analysis (report at the bottom)
 | GEOxyz runs today | `main` |
 | Upstream | apsmir/custom_field_sql (main @ 13d0792, 2026-07-02) |
 | Runs on Redmine 7 as is | DEELS (does not boot in production: `unloadable`) |
-| Runs on Redmine 7 with this branch | JA: boots, eager load OK, tests green on PostgreSQL and MariaDB, every function end to end in the browser on both |
-| Upstream sync | NIET NODIG: optioneel: upstream 3d36b17 (multi select) + 13d0792 (IssueHotButton) - features, geen R7-fixes, conflicten met GEOxyz JS/CSS-commits waarschijnlijk |
-| After sync | n.v.t. |
+| Runs on Redmine 7 with this branch | JA: boots, eager load OK, tests green on PostgreSQL, every function end to end in the browser (MariaDB also green on 2026-10-06, no longer required) |
+| Upstream sync | GEDAAN (Jan, 2026-10-07): upstream 3d36b17 (multi select) en 13d0792 (IssueHotButton) overgenomen en aangepast, work item 12; upstream main @ 13d0792 heeft niets meer dat hier ontbreekt |
+| After sync | JA, zie "Results (2026-10-07)" |
 | Complexity (1 trivial .. 5 rewrite) | 2 |
-| Measured on | Redmine 7.0.1 (7.0-stable-GEOxyz + latest 7.0-stable), Rails 8.1.3.1, Ruby 3.3.6, PostgreSQL 16 and MariaDB 10.11 |
+| Measured on | Redmine 7.0.1 (7.0-stable-GEOxyz), Rails 8.1.3.1, Ruby 3.3.6, PostgreSQL 16 (2026-10-07); MariaDB 10.11 and 7.0-stable on 2026-10-06 |
 | Branch head when this file was written | `6106dfb` (plan); work finished at the commit that adds this line, see `git log` |
-| Migration state | IN PROGRESS: carrying out Jan's decisions of 2026-10-07 (work items 10-12) |
+| Migration state | DONE, Jan's decisions of 2026-10-07 carried out (work items 10-12); nothing open for Jan |
 
 ## Already on this branch
 
@@ -51,10 +51,13 @@ Code (each with a test that fails without it):
   without tracker gave `tracker_id = ` (SQL error); both are now `null` when unknown.
 - `1e66808` locales: the default strict selection message is translated (en unchanged), ru.yml got the
   two keys it lacked; a test keeps the shipped locales on the same keys.
+- Jan's decisions of 2026-10-07: `d6f3dc5` (+ README `4e9174e`) anonymous suggestions where the anonymous
+  role may add issues (item 10); `0ed20a0` (+ `0257174`) `sql_search` fields of projects, users and time
+  entries (item 11); `6f76d47` multi select and IssueHotButton compatibility from upstream (item 12).
 - `ef18c8a` README (work item 3): example 2 was MySQL-only (`if()`, `?`); portable now, with notes on writing
   queries that run on both databases and (21370ce) that a query is not limited to what the user may see.
 
-Evidence: test/e2e/*.mjs (7 scenarios + seed), docs/e2e (PostgreSQL), docs/e2e/mariadb, docs/e2e/before
+Evidence: test/e2e/*.mjs (10 scenarios + seed), docs/e2e (PostgreSQL), docs/e2e/mariadb, docs/e2e/before
 (Redmine 5.1 with `main`), docs/e2e/together (with other GEOxyz plugins), docs/reviews (OpenAI).
 
 ## Baseline (2026-10-06, before any change, Redmine 7.0.1 = 7.0-stable-GEOxyz @ 8067e23, Ruby 3.3.6)
@@ -138,8 +141,34 @@ Actions the person doing the upgrade must take, or know about, for this plugin:
 - Users without `add_issues`, `edit_issues` or `edit_own_issues` in the project, and users who may not see
   the field, get no search results any more (403/404). Anonymous users get results where the anonymous
   role may add or edit issues (Jan's decision 1); elsewhere 401.
-- Nothing else: no migrations, no settings, no cron, no files.
+- Anonymous suggestions (decision 1) follow the anonymous role: give it "Add issues" (with trackers) in the
+  projects where anonymous users should get them; nothing to do otherwise.
+- `sql_search` fields of projects, users and time entries (decision 2) need the script that wires them
+  (view_customize or similar) to call `/custom_sql_search/search` with `custom_field_id` and, for projects
+  and time entries, `project_id` (time entries: `issue_id` too, optional). Who gets results: README. Check
+  the existing scripts in production against that URL after the upgrade; a script that passed other
+  parameters still works, but `%{project_id}`/`%{issue_id}` are now the checked ids (or `null`).
+- Multiple selection (decision 3) is a new setting per `sql_search` field, off for every existing field:
+  nothing changes until someone ticks it. Switching it on for a field with values keeps them (one value
+  each, shown as before) until the issue is saved again. REST API and webhooks carry the stored JSON text.
+- Nothing else: no migrations, no cron, no files.
 
+
+## Results (2026-10-07, Jan's decisions)
+
+Redmine 7.0.1 (7.0-stable-GEOxyz), Ruby 3.3.6, PostgreSQL 16.15, production mode for e2e.
+
+| run | result |
+|---|---|
+| plugin tests, alone (`./.codex/test_plugin.sh`) | 63 runs, 462 assertions, 0 failures, 0 errors, 2 skips |
+| plugin tests with 16 other GEOxyz plugins (`redmine70-migration` branches: redmine_itil_priority, redmine_depending_custom_fields, computed_custom_field, redmine_inline_edit_issues, view_customize, redmine_issue_field_visibility, redmine_project_workflows, redmine_issue_templates, redmine_parent_child_filters, redmine_subtask, redmine_tint_issues, redmine_view_issue_description, redmine_issue_view_columns, redmine_description_macros, redmine_extended_api, redmine_editauthor) | 63 runs, 456 assertions, 1 failure: issues_controller_test `test_edit_form` gets 403 because redmine_view_issue_description refuses the issue edit page to roles without its own `view_issue_description` permission (the core fixture roles have none). Bisected; without that one plugin (15 others): 63 runs, 462 assertions, 0 failures |
+| e2e alone, fresh database (docs/e2e) | smoke 11, core 6, 10 plugin scenarios 80: 97 screenshots, 0 problems |
+| e2e with the 16 plugins (not committed, same scenarios) | 97 screenshots, 4 problems, all from redmine_view_issue_description: the reporter (core Reporter) and the anonymous user get 403 on an issue page without `view_issue_description` (core.mjs, sql_list.mjs twice, anonymous_search.mjs after a successful create). Not this plugin's; no other difference |
+| Project > Settings, issue list, issue page and edit form with the 16 plugins, admin and manager (docs/e2e/together/pages.mjs) | 8 screenshots, all 200, 0 problems; the edit form carries both `observeSqlField` and `observeSqlMultiField` |
+| inline edit with redmine_inline_edit_issues (docs/e2e/together/inline_edit.mjs) | 2 screenshots, 0 problems |
+
+Every screenshot was opened and looked at. Review: own adversarial review of the new commits; OpenAI
+(`gpt-5`, docs/reviews/openai-2026-10-07-*.md): no findings.
 
 ## Results (2026-10-06)
 
@@ -189,6 +218,11 @@ rejected (locale keys exist, blank form-param lines do not raise, `</script>` is
 | bulk edit: `sql` options and `sql_search` autocomplete (#6600) | issue list, context menu > Bulk edit | bulk_edit.mjs | bulk_edit-form, -list-options, -saved; core-context-menu shows the `sql` list in the context menu |
 | CSS only on the plugin's widgets (#6211), Propshaft asset paths | issue form | css_scope.mjs | css_scope-core-autocomplete, -plugin-autocomplete |
 | jQuery `edited` flag for redmine_inline_edit_issues (#6103) | issue form; inline edit page | sql_search.mjs, together/inline_edit.mjs | sql_search-selected, together/inline_edit-picked, -saved |
+| multi select of `sql_search` (decision 3, upstream 3d36b17): tags, "+", removing, JSON storage, list display, history, default value | Administration > Custom fields > sql search > "multiple selection"; issue form | multi_select.mjs, sql_format_test.rb, custom_sql_search_hook_test.rb | multi_select-admin-setting, -new-tags, -new-add-button, -new-after-update (issue form update keeps the tags), -saved, -edit-tags, -list, -reporter-new, -outsider-new, -outsider-private (403), -strict-no-add (strict selection: no "+") |
+| multi select on bulk edit: set, untouched, Clear | issue list, context menu > Bulk edit | multi_select.mjs | multi_select-bulk-edit, -list, -bulk-untouched, -bulk-clear, -bulk-cleared |
+| IssueHotButton compatibility (upstream 13d0792): `form.submit()` carries the values | IssueHotButton sends the issue form with `form.submit()` | multi_select.mjs (the same call, without the plugin) | multi_select-hot-button-submit |
+| anonymous suggestions where the anonymous role may add issues (decision 1) | new issue form as anonymous user | anonymous_search.mjs, custom_sql_search_controller_test.rb | anonymous_search-refused-without-permission, -role-add-issues, -typing, -created, -refused-issue-and-private, -reporter, -login-required, -refused-again |
+| `sql_search` fields of projects, users, time entries (decision 2) | new project, project settings, Users > edit, My account, Log time (project and global), wired by a script of one's own | other_fields.mjs, custom_sql_search_controller_test.rb | other_fields-project-new, -project-settings, -project-reporter-refused, -user-admin-form, -user-my-account, -user-reporter, -user-outsider, -user-not-editable (403), -time-entry, -time-entry-global, -time-entry-reporter, -outsider-refused, -anonymous |
 | `/custom_sql_search/search` (JSON, behind every `sql_search` field): authorization and escaping | XHR from the forms | search_authorization.mjs | 16 screenshots: allowed as manager/reporter/outsider on a public project; refused for anonymous, hidden field, field not in project, private project, invisible issue, issue the user cannot edit, wrong field type, unknown project; injection through term and form parameter returns nothing (before: hashes, docs/e2e/before) |
 | webhooks (core 7) carry the plugin's values | Administration > Settings > Integrations, My webhooks | webhook.mjs | webhook-new-webhook, -payload (+ webhook-payload.json) |
 | plugin page smoke, core flows | all | .codex smoke/core | smoke-01..11, core-* |
@@ -211,6 +245,14 @@ rejected (locale keys exist, blank form-param lines do not raise, `</script>` is
 - `db_config` naming a configuration that does not exist raises (nil adapter) and gives 500 (unchanged).
 - The MySQL `NO_BACKSLASH_ESCAPES` mode with a template that itself contains `'\'` could confuse the
   placeholder scanner; Redmine does not set that mode.
+- Multi select on the inline edit page of redmine_inline_edit_issues: that page is wired by a script of
+  one's own (see docs/e2e/together/inline_edit.mjs); for a multi select field that script must call
+  `observeSqlMultiField` instead of `observeSqlField`. Not exercised.
+- Multi select text typed but not turned into a tag (strict selection on, or "+" not pressed) is not saved;
+  same as upstream.
+- The REST API and webhooks carry a multi select value as its stored JSON text (`["a","b"]`).
+- With redmine_view_issue_description installed, a role without `view_issue_description` cannot open or
+  edit issues at all (by that plugin's design); seen in the combined run, not this plugin's.
 - `.codex/test_setup.sh` cannot provision PostgreSQL as root (`$SUDO -u postgres` with an empty `$SUDO`);
   5.1-stable needs Ruby < 3.3 (used 3.2.6 from rbenv).
 
