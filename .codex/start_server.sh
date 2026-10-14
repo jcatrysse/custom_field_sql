@@ -74,10 +74,14 @@ if [ "$adapter" = mysql2 ] && command -v mysql >/dev/null 2>&1; then
     mysql -h "$host" -P "$port" -uroot -p"$password" -e "$grant" 2>/dev/null || true
 fi
 
-if [ ! -f "$REDMINE_DIR/config/configuration.yml" ]; then
+# Only for the server's environment: under "default:" Redmine applies it to the
+# test environment too, and the plugin's tests then write mail to files.
+# An earlier "default:" file written by this script is replaced.
+cfg="$REDMINE_DIR/config/configuration.yml"
+if [ ! -f "$cfg" ] || { grep -q '^default:' "$cfg" && grep -q "location: $REDMINE_DIR/tmp/mails" "$cfg"; }; then
   mkdir -p "$REDMINE_DIR/tmp/mails"
-  cat > "$REDMINE_DIR/config/configuration.yml" <<YAML
-default:
+  cat > "$cfg" <<YAML
+$RMP_SERVER_ENV:
   email_delivery:
     delivery_method: :file
     file_settings:
