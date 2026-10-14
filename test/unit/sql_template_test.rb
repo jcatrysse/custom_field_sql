@@ -117,6 +117,17 @@ class CustomFieldSqlTemplateTest < ActiveSupport::TestCase
                  render("select %{p0} where x = '%{p0}' -- %{p0}", 'p0' => "a'b")
   end
 
+  # stored SQL from before the security fix may still use the String#% form
+  def test_legacy_named_placeholder_is_filled_and_escaped_like_the_other_form
+    PAYLOADS.each do |payload|
+      assert_equal payload.delete("\0"), value_of(render("select '%<p0>s' as v", 'p0' => payload)), payload.inspect
+      assert_equal render("select '%{p0}' as v", 'p0' => payload), render("select '%<p0>s' as v", 'p0' => payload)
+    end
+    assert_equal render("select %{p0} as v", 'p0' => "1 or 1=1"), render("select %<p0>s as v", 'p0' => "1 or 1=1")
+    assert_equal "select 3 as v", render("select %<issue_id>s as v", {}, trusted: { issue_id: 3 })
+    assert_raises(KeyError) { render("select '%<nothere>s'", {}) }
+  end
+
   def test_unknown_placeholder_raises_key_error_as_before
     assert_raises(KeyError) { render("select '%{nothere}'", {}) }
   end

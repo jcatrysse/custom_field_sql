@@ -48,8 +48,8 @@ Every value that comes from the browser (%{term} and the form parameters) is esc
 for the place it has in the query: inside quotes (`'%{p0}'`) as the content of a string
 literal, outside quotes as a string literal of its own (a number or a list of integers,
 like `1,2,3`, stays a number). %{project_id} and %{issue_id} are the ids of the project
-and the issue the user may see; `null` for a new issue. Only `%{name}` placeholders are
-supported; write `%%` for a literal percent sign.
+and the issue the user may see; `null` for a new issue. Placeholders are `%{name}`; the
+older `%<name>s` form works the same way. Write `%%` for a literal percent sign.
 
 Only users who can add or edit issues in the project, and who may see the field there,
 get results; anonymous users too, where the anonymous role may add or edit issues.

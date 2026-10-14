@@ -54,6 +54,19 @@ class CustomSqlSearchControllerTest < Redmine::ControllerTest
     end
   end
 
+  # a field saved with the String#% form before the upgrade keeps working
+  def test_legacy_placeholder_in_stored_sql
+    @field.update!(sql: "select subject as value, id as label from issues " \
+                        "where project_id = %<project_id>s and subject like '%%%<term>s%%' order by id")
+    @request.session[:user_id] = 2
+    search
+    assert_response :success
+    assert_equal ['Cannot print recipes', 'Error 281 when updating a recipe'], values
+    search(term: "zzz' or 1=1 or subject like '")
+    assert_response :success
+    assert_equal [], values
+  end
+
   def test_term_cannot_inject_sql
     @request.session[:user_id] = 2
     ["zzz' or 1=1 or subject like '", "zzz%' union select login, id from users --",

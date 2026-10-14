@@ -132,8 +132,9 @@ Actions the person doing the upgrade must take, or know about, for this plugin:
 
 - Production runs PostgreSQL, so stored SQL is PostgreSQL dialect already. After the upgrade, export every stored SQL field (`SELECT id, name, field_format, format_store FROM custom_fields WHERE field_format IN ('sql','sql_search')`) and run each statement once on 7.0: one broken statement breaks the whole new-issue form (HTTP 500, measured).
 - In the same export, check the `sql_search` queries for these three changes of the security fix (work item 2):
-  - only `%{name}` placeholders are filled; a `%<name>s` placeholder now raises (HTTP 500 on the search):
-    rewrite it as `%{name}`;
+  - `%{name}` and the legacy `%<name>s` placeholders are both filled and escaped (the legacy form gave
+    KeyError / HTTP 500 in the upgrade rehearsal of 2026-10-14 until LEGACY_COMMIT); other `String#%` forms
+    (`%<name>d`, `%s`) still raise and need a rewrite to `%{name}`;
   - a request value outside quotes is now a string literal (`where id = %{p0}` gets `'abc'`, not `abc`);
     numbers and integer lists (`1,2,3`) are unchanged, so `id = %{p0}` and `id in (%{p0})` keep working;
     a query that pasted SQL text through a form parameter (column names, operators) stops working, by design;
@@ -163,6 +164,7 @@ Redmine 7.0.1 (7.0-stable-GEOxyz), Ruby 3.3.6, PostgreSQL 16.15, production mode
 | plugin tests, alone (`./.codex/test_plugin.sh`) | 63 runs, 462 assertions, 0 failures, 0 errors, 2 skips |
 | plugin tests with 16 other GEOxyz plugins (`redmine70-migration` branches: redmine_itil_priority, redmine_depending_custom_fields, computed_custom_field, redmine_inline_edit_issues, view_customize, redmine_issue_field_visibility, redmine_project_workflows, redmine_issue_templates, redmine_parent_child_filters, redmine_subtask, redmine_tint_issues, redmine_view_issue_description, redmine_issue_view_columns, redmine_description_macros, redmine_extended_api, redmine_editauthor) | 63 runs, 456 assertions, 1 failure: issues_controller_test `test_edit_form` gets 403 because redmine_view_issue_description refuses the issue edit page to roles without its own `view_issue_description` permission (the core fixture roles have none). Bisected; without that one plugin (15 others): 63 runs, 462 assertions, 0 failures |
 | combined run of 2026-10-14 (coordinator: 44 GEOxyz plugins, head 99c4f61) | 1 failure, the same redmine_view_issue_description 403; fixed in `1adbed7` (test roles get `view_issue_description` when that plugin is installed): with 16 plugins 63 runs, 463 assertions, 0 failures; alone 63 runs, 0 failures. Harness finding H6 fixed in `dc4e6dd` (configuration.yml mail settings under the server's environment, not `default:`; the test environment had file delivery) |
+| upgrade rehearsal of 2026-10-14 (coordinator, 5.1 -> 7.0-stable-GEOxyz ad17efd): a stored `%<q>s` gave KeyError, HTTP 500 on the search | fixed in LEGACY_COMMIT at render time, not with a data migration (see below): tests 65 runs, 527 assertions, 0 failures (2 new tests fail without it with KeyError); legacy_placeholder.mjs 4 screenshots, 0 problems (without the fix: 5 problems, HTTP 500) |
 | e2e alone, fresh database (docs/e2e) | smoke 11, core 6, 10 plugin scenarios 80: 97 screenshots, 0 problems |
 | e2e with the 16 plugins (not committed, same scenarios) | 97 screenshots, 4 problems, all from redmine_view_issue_description: the reporter (core Reporter) and the anonymous user get 403 on an issue page without `view_issue_description` (core.mjs, sql_list.mjs twice, anonymous_search.mjs after a successful create). Not this plugin's; no other difference |
 | Project > Settings, issue list, issue page and edit form with the 16 plugins, admin and manager (docs/e2e/together/pages.mjs) | 8 screenshots, all 200, 0 problems; the edit form carries both `observeSqlField` and `observeSqlMultiField` |
@@ -224,6 +226,7 @@ rejected (locale keys exist, blank form-param lines do not raise, `</script>` is
 | IssueHotButton compatibility (upstream 13d0792): `form.submit()` carries the values | IssueHotButton sends the issue form with `form.submit()` | multi_select.mjs (the same call, without the plugin) | multi_select-hot-button-submit |
 | anonymous suggestions where the anonymous role may add issues (decision 1) | new issue form as anonymous user | anonymous_search.mjs, custom_sql_search_controller_test.rb | anonymous_search-refused-without-permission, -role-add-issues, -typing, -created, -refused-issue-and-private, -reporter, -login-required, -refused-again |
 | `sql_search` fields of projects, users, time entries (decision 2) | new project, project settings, Users > edit, My account, Log time (project and global), wired by a script of one's own | other_fields.mjs, custom_sql_search_controller_test.rb | other_fields-project-new, -project-settings, -project-reporter-refused, -user-admin-form, -user-my-account, -user-reporter, -user-outsider, -user-not-editable (403), -time-entry, -time-entry-global, -time-entry-reporter, -outsider-refused, -anonymous |
+| legacy `%<name>s` placeholders in stored `sql_search` SQL (upgrade rehearsal 2026-10-14) | a field saved before the upgrade; issue form | legacy_placeholder.mjs, sql_template_test.rb, custom_sql_search_controller_test.rb | legacy_placeholder-admin-legacy-sql, -manager-typing, -injection (0 rows), -outsider-refused (403) |
 | `/custom_sql_search/search` (JSON, behind every `sql_search` field): authorization and escaping | XHR from the forms | search_authorization.mjs | 16 screenshots: allowed as manager/reporter/outsider on a public project; refused for anonymous, hidden field, field not in project, private project, invisible issue, issue the user cannot edit, wrong field type, unknown project; injection through term and form parameter returns nothing (before: hashes, docs/e2e/before) |
 | webhooks (core 7) carry the plugin's values | Administration > Settings > Integrations, My webhooks | webhook.mjs | webhook-new-webhook, -payload (+ webhook-payload.json) |
 | plugin page smoke, core flows | all | .codex smoke/core | smoke-01..11, core-* |
@@ -246,6 +249,12 @@ rejected (locale keys exist, blank form-param lines do not raise, `</script>` is
 - `db_config` naming a configuration that does not exist raises (nil adapter) and gives 500 (unchanged).
 - The MySQL `NO_BACKSLASH_ESCAPES` mode with a template that itself contains `'\'` could confuse the
   placeholder scanner; Redmine does not set that mode.
+- Legacy `%<name>s` placeholders: handled when the query is rendered instead of rewriting stored SQL with a
+  data migration. Same result for the rehearsal case, but it leaves administrator-written data untouched
+  (no rewrite to log, verify or roll back; Jan's rules ask before any data or schema change Redmine 7 does
+  not require), also covers a query saved or imported later in the old form, and every value still goes
+  through the same escaping. A rewrite would also have to tell `%<q>s` in a placeholder from the same text
+  inside a string literal or comment of the SQL, which the renderer already does.
 - Multi select on the inline edit page of redmine_inline_edit_issues: that page is wired by a script of
   one's own (see docs/e2e/together/inline_edit.mjs); for a multi select field that script must call
   `observeSqlMultiField` instead of `observeSqlField`. Not exercised.

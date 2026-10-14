@@ -8,13 +8,16 @@ module CustomFieldSql
   #   anywhere else              an unsigned number or a list of integers as is,
   #                              anything else as a quoted string literal
   #
+  # The legacy %<name>s form (the plugin used String#% with the request values
+  # before) is filled the same way as %{name}.
+  #
   # Trusted values (ids the controller looked up itself) are put in as given.
   # The result is then formatted with String#%, as before, so %% stays a percent
   # sign and an unknown placeholder still raises KeyError.
   class SqlTemplate
     NUMBER = /\A\d+(\.\d+)?\z/
     INTEGER_LIST = /\A\d+(\s*,\s*\d+)*\z/
-    PLACEHOLDER = /\A%\{([^}]*)\}/
+    PLACEHOLDER = /\A%(?:\{([^}]*)\}|<([^>]*)>s)/
     CLOSING = { single: "'", double: '"', backtick: '`', bracket: ']' }
 
     # dialect: :postgresql, :mysql or :sqlserver (a db_config connection).
@@ -54,7 +57,7 @@ module CustomFieldSql
         end
         if c == '%' && (m = PLACEHOLDER.match(sql[i..]))
           key = :"__cfsql_#{filled.size}"
-          filled[key] = substitute(m[1], state, backslash)
+          filled[key] = substitute(m[1] || m[2], state, backslash)
           # E'..', X'..', N'..': a literal right after a word is not a plain string
           filled[key] = " #{filled[key]}" if state == :code && filled[key].start_with?("'") && out =~ /[\w$'"`\]]\z/
           out << "%{#{key}}"
