@@ -11,6 +11,8 @@ class CustomFieldSqlIssuesControllerTest < Redmine::ControllerTest
                                      sql: "select subject, id from issues where project_id = 1 and id <> coalesce(%id%, 0) order by id")
     @search = IssueCustomField.create!(name: 'Subject search', field_format: 'sql_search', is_for_all: true,
                                        trackers: Tracker.all, sql: "select subject as value from issues", form_params: '')
+    # redmine_view_issue_description refuses the issue pages to roles without its own permission
+    Role.find(1).add_permission!(:view_issue_description) if Redmine::Plugin.installed?(:redmine_view_issue_description)
     @request.session[:user_id] = 2
   end
 
